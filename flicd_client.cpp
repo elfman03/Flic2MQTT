@@ -12,23 +12,23 @@
 
 #include <stdio.h>
 #include <errno.h>
-//linux #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-//linux #include <poll.h>
 #include <stdint.h>
 #include <assert.h>
-
 #include <string>
-
-//linux #include <sys/param.h>
-//linux #include <sys/uio.h>
 #include <sys/types.h>
-//linux #include <sys/ioctl.h>
-//linux #include <sys/socket.h>
 
-//linux #include <arpa/inet.h>
-//linux #include <netdb.h>
+#ifdef __GNUC__
+linux #include <unistd.h>
+linux #include <poll.h>
+linux #include <sys/param.h>
+linux #include <sys/uio.h>
+linux #include <sys/ioctl.h>
+linux #include <sys/socket.h>
+linux #include <arpa/inet.h>
+linux #include <netdb.h>
+#endif
 
 #include "flicd_client_protocol_packets.h"
 
@@ -181,7 +181,9 @@ struct Bdaddr {
 };
 
 static void write_packet(int fd, void* buf, int len) {
-	uint8_t new_buf[2 + len];
+	//uint8_t new_buf[2 + len];  // bogus code from upstream
+        uint8_t new_buf[4096];
+        assert(len<4094);
 	new_buf[0] = len & 0xff;
 	new_buf[1] = len >> 8;
 	memcpy(new_buf + 2, buf, len);
@@ -232,7 +234,7 @@ static void print_help() {
 	fprintf(stderr, help_text);
 }
 
-int main(int argc, char* argv[]) {
+int flic_client_main(int argc, char* argv[]) {
 	// Disable buffering for stdin to be able to select on both the server socket and stdin
 	setvbuf(stdin, NULL, _IONBF, 0);
 	

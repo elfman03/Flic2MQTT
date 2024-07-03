@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023, Chris Elford
+ * Copyright (C) 2024, Chris Elford
  * 
  * SPDX-License-Identifier: MIT
  *

@@ -1,0 +1,24 @@
+#
+# where should logs go?
+#
+LOGFILE=stdout
+#
+# Where is my mqtt server and what should the topic pattern be (will augment circuit name)
+#
+MQTT_SERVER=192.168.100.250
+MQTT_TOPIC_BASE=/flic2mqtt/
+#
+#
+# The button names I want to track and their flic identifiers (can have up to 8)
+#
+FLIC_NAME_0=butt0
+FLIC_ID_0=1
+#
+FLIC_NAME_1=butt1
+FLIC_ID_1=2
+#
+FLIC_NAME_2=butt2
+FLIC_ID_2=2
+#
+FLIC_NAME_3=butt3
+FLIC_ID_3=3

@@ -24,7 +24,14 @@ int epochNum=0;
 int packetCount;
 int packetCountEpoch;
 
-void main() {
+extern int flicd_client_main(int argc, char *argv[]);
+
+int main(int argc, char *argv[]) {
+  if(argc>1) {
+    flicd_client_main(argc,argv);
+    return(0);
+  }
+
   int status;
   //
   // Load Config

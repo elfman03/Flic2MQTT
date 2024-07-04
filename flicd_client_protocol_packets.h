@@ -32,35 +32,33 @@ namespace FlicClientProtocol {
 // need MSVC equivalent of packed attribute for this block of definitions
 // base solution on https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed
 #define PACKED __attribute__((packed))
+#define PACKED_ENUM_PRE 
 #else
-#define PACKED 
-#endif
-
-#ifdef _MSC_VER
-__pragma(pack(push,1))
+#define PACKED
+#define PACKED_ENUM_PRE : unsigned char
 #endif
 
 /// Enums
 
-enum CreateConnectionChannelError {
+enum CreateConnectionChannelError PACKED_ENUM_PRE {
 	NoError,
 	MaxPendingConnectionsReached
 } PACKED;
 
-enum ConnectionStatus {
+enum ConnectionStatus PACKED_ENUM_PRE {
 	Disconnected,
 	Connected,
 	Ready
 } PACKED;
 
-enum DisconnectReason {
+enum DisconnectReason PACKED_ENUM_PRE {
 	Unspecified,
 	ConnectionEstablishmentFailed,
 	TimedOut,
 	BondingKeysMismatch
 } PACKED;
 
-enum RemovedReason {
+enum RemovedReason PACKED_ENUM_PRE {
 	RemovedByThisClient,
 	ForceDisconnectedByThisClient,
 	ForceDisconnectedByOtherClient,
@@ -78,7 +76,7 @@ enum RemovedReason {
 	DeletedFromButton
 } PACKED;
 
-enum ClickType {
+enum ClickType PACKED_ENUM_PRE {
 	ButtonDown,
 	ButtonUp,
 	ButtonClick,
@@ -87,18 +85,18 @@ enum ClickType {
 	ButtonHold
 } PACKED;
 
-enum BdAddrType {
+enum BdAddrType PACKED_ENUM_PRE {
 	PublicBdAddrType,
 	RandomBdAddrType
 } PACKED;
 
-enum LatencyMode {
+enum LatencyMode PACKED_ENUM_PRE {
 	NormalLatency,
 	LowLatency,
 	HighLatency
 } PACKED;
 
-enum ScanWizardResult {
+enum ScanWizardResult PACKED_ENUM_PRE {
 	WizardSuccess,
 	WizardCancelledByUser,
 	WizardFailedTimeout,
@@ -110,13 +108,17 @@ enum ScanWizardResult {
 	WizardButtonAlreadyConnectedToOtherDevice
 } PACKED;
 
-enum BluetoothControllerState {
+enum BluetoothControllerState PACKED_ENUM_PRE {
 	Detached,
 	Resetting,
 	Attached
 } PACKED;
 
 /// Commands
+
+#ifdef _MSC_VER
+#pragma pack(push,1)
+#endif
 
 #define CMD_GET_INFO_OPCODE 0
 typedef struct {
@@ -268,8 +270,10 @@ typedef struct {
 #define EVT_GET_INFO_RESPONSE_OPCODE 9
 typedef struct {
 	uint8_t opcode;
+	//uint8_t BluetoothControllerState bluetooth_controller_state;
 	enum BluetoothControllerState bluetooth_controller_state;
 	uint8_t my_bd_addr[6];
+	//uint8_t BdAddrType my_bd_addr_type;
 	enum BdAddrType my_bd_addr_type;
 	uint8_t max_pending_connections;
 	int16_t max_concurrently_connected_buttons;
@@ -361,7 +365,7 @@ typedef struct {
 } PACKED EvtBatteryStatus;
 
 #ifdef _MSC_VER
-__pragma(pack(pop))
+#pragma pack(pop)
 #endif
 
 #ifdef __cplusplus

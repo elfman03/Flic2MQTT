@@ -4,13 +4,14 @@
 ## SPDX-License-Identifier: MIT
 ##
 
-OPTS=/MD /EHsc 
+OPTS=/MD /EHsc /Zi
 OBJS=Config.obj PahoWrapper.obj flicd_client.obj
+ELIBS=ws2_32.lib mswsock.lib advapi32.lib
 PAHO_I=../paho.mqtt.c/src
 PAHO_L=../paho.mqtt.c/src/Release/paho-mqtt3a.lib
 
 Flic2MQTT.exe: Flic2MQTT.cpp $(OBJS)
-	cl $(OPTS) /I $(PAHO_I) Flic2MQTT.cpp /link $(OBJS) $(PAHO_L)
+	cl $(OPTS) /I $(PAHO_I) Flic2MQTT.cpp /link /DEBUG $(OBJS) $(PAHO_L) $(ELIBS)
 
 Config.obj: Config.cpp Config.h global.h
 	cl $(OPTS) /c Config.cpp

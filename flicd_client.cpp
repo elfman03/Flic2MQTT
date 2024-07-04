@@ -203,6 +203,7 @@ static void write_packet(int fd, void* buf, int len) {
   new_buf[0] = len & 0xff;
   new_buf[1] = len >> 8;
   memcpy(new_buf + 2, buf, len);
+  fprintf(stderr,"Sending flicd client command : %s\n",FLICD_CMDS[*(unsigned char *)buf]);
   
   int pos = 0;
   int left = 2 + len;
@@ -291,7 +292,7 @@ fprintf(stderr,"flicd wants to send %d bytes\n",packet_len);
       read_pos += nbytes;
       bytes_left -= nbytes;
     }
-fprintf(stderr,"flicd sent %d bytes\n",read_pos);
+fprintf(stderr,"flicd sent %d bytes - event=%s\n",read_pos,FLICD_EVTS[readbuf[0]]);
     
     void* pkt = (void*)readbuf;
     switch (readbuf[0]) {

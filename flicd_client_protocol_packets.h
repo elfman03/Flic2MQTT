@@ -29,14 +29,90 @@ namespace FlicClientProtocol {
 #endif
 
 #ifdef __GNUC__
-// need MSVC equivalent of packed attribute for this block of definitions
+// need MSVC equivalent of packed attribute for this block of definitions (both for packed structures and packed enums)
 // base solution on https://stackoverflow.com/questions/1537964/visual-c-equivalent-of-gccs-attribute-packed
+// https://stackoverflow.com/questions/837319/packing-enums-using-the-msvc-compiler
 #define PACKED __attribute__((packed))
 #define PACKED_ENUM_PRE 
 #else
 #define PACKED
 #define PACKED_ENUM_PRE : unsigned char
 #endif
+
+#define CMD_GET_INFO_OPCODE                        0
+#define CMD_CREATE_SCANNER_OPCODE                  1
+#define CMD_REMOVE_SCANNER_OPCODE                  2
+#define CMD_CREATE_CONNECTION_CHANNEL_OPCODE       3
+#define CMD_REMOVE_CONNECTION_CHANNEL_OPCODE       4
+#define CMD_FORCE_DISCONNECT_OPCODE                5
+#define CMD_CHANGE_MODE_PARAMETERS_OPCODE          6
+#define CMD_PING_OPCODE                            7
+#define CMD_GET_BUTTON_INFO_OPCODE                 8
+#define CMD_CREATE_SCAN_WIZARD_OPCODE              9
+#define CMD_CANCEL_SCAN_WIZARD_OPCODE             10
+#define CMD_DELETE_BUTTON_OPCODE                  11
+#define CMD_CREATE_BATTERY_STATUS_LISTENER_OPCODE 12
+#define CMD_REMOVE_BATTERY_STATUS_LISTENER_OPCODE 13
+
+static const char* FLICD_CMDS[]={"CMD_GET_INFO_OPCODE",
+                                 "CMD_CREATE_SCANNER_OPCODE",
+                                 "CMD_REMOVE_SCANNER_OPCODE",
+                                 "CMD_CREATE_CONNECTION_CHANNEL_OPCODE",
+                                 "CMD_REMOVE_CONNECTION_CHANNEL_OPCODE",
+                                 "CMD_FORCE_DISCONNECT_OPCODE",
+                                 "CMD_CHANGE_MODE_PARAMETERS_OPCODE",
+                                 "CMD_PING_OPCODE",
+                                 "CMD_GET_BUTTON_INFO_OPCODE",
+                                 "CMD_CREATE_SCAN_WIZARD_OPCODE",
+                                 "CMD_CANCEL_SCAN_WIZARD_OPCODE",
+                                 "CMD_DELETE_BUTTON_OPCODE",
+                                 "CMD_CREATE_BATTERY_STATUS_LISTENER_OPCODE",
+                                 "CMD_REMOVE_BATTERY_STATUS_LISTENER_OPCODE"};
+
+#define EVT_ADVERTISEMENT_PACKET_OPCODE                  0
+#define EVT_CREATE_CONNECTION_CHANNEL_RESPONSE_OPCODE    1
+#define EVT_CONNECTION_STATUS_CHANGED_OPCODE             2
+#define EVT_CONNECTION_CHANNEL_REMOVED_OPCODE            3
+#define EVT_BUTTON_UP_OR_DOWN_OPCODE                     4
+#define EVT_BUTTON_CLICK_OR_HOLD_OPCODE                  5
+#define EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE         6
+#define EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OR_HOLD_OPCODE 7
+#define EVT_NEW_VERIFIED_BUTTON_OPCODE                   8
+#define EVT_GET_INFO_RESPONSE_OPCODE                     9
+#define EVT_NO_SPACE_FOR_NEW_CONNECTION_OPCODE          10
+#define EVT_GOT_SPACE_FOR_NEW_CONNECTION_OPCODE         11
+#define EVT_BLUETOOTH_CONTROLLER_STATE_CHANGE_OPCODE    12
+#define EVT_PING_RESPONSE_OPCODE                        13
+#define EVT_GET_BUTTON_INFO_RESPONSE_OPCODE             14
+#define EVT_SCAN_WIZARD_FOUND_PRIVATE_BUTTON_OPCODE     15
+#define EVT_SCAN_WIZARD_FOUND_PUBLIC_BUTTON_OPCODE      16
+#define EVT_SCAN_WIZARD_BUTTON_CONNECTED_OPCODE         17
+#define EVT_SCAN_WIZARD_COMPLETED_OPCODE                18
+#define EVT_BUTTON_DELETED_OPCODE                       19
+#define EVT_BATTERY_STATUS_OPCODE                       20
+
+static const char* FLICD_EVTS[]={"EVT_ADVERTISEMENT_PACKET_OPCODE",
+                                 "EVT_CREATE_CONNECTION_CHANNEL_RESPONSE_OPCODE",
+                                 "EVT_CONNECTION_STATUS_CHANGED_OPCODE",
+                                 "EVT_CONNECTION_CHANNEL_REMOVED_OPCODE",
+                                 "EVT_BUTTON_UP_OR_DOWN_OPCODE",
+                                 "EVT_BUTTON_CLICK_OR_HOLD_OPCODE",
+                                 "EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE",
+                                 "EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OR_HOLD_OPCODE",
+                                 "EVT_NEW_VERIFIED_BUTTON_OPCODE",
+                                 "EVT_GET_INFO_RESPONSE_OPCODE",
+                                 "EVT_NO_SPACE_FOR_NEW_CONNECTION_OPCODE",
+                                 "EVT_GOT_SPACE_FOR_NEW_CONNECTION_OPCODE",
+                                 "EVT_BLUETOOTH_CONTROLLER_STATE_CHANGE_OPCODE",
+                                 "EVT_PING_RESPONSE_OPCODE",
+                                 "EVT_GET_BUTTON_INFO_RESPONSE_OPCODE",
+                                 "EVT_SCAN_WIZARD_FOUND_PRIVATE_BUTTON_OPCODE",
+                                 "EVT_SCAN_WIZARD_FOUND_PUBLIC_BUTTON_OPCODE",
+                                 "EVT_SCAN_WIZARD_BUTTON_CONNECTED_OPCODE",
+                                 "EVT_SCAN_WIZARD_COMPLETED_OPCODE",
+                                 "EVT_BUTTON_DELETED_OPCODE",
+                                 "EVT_BATTERY_STATUS_OPCODE"};
+
 
 /// Enums
 
@@ -120,24 +196,20 @@ enum BluetoothControllerState PACKED_ENUM_PRE {
 #pragma pack(push,1)
 #endif
 
-#define CMD_GET_INFO_OPCODE 0
 typedef struct {
 	uint8_t opcode;
 } PACKED CmdGetInfo;
 
-#define CMD_CREATE_SCANNER_OPCODE 1
 typedef struct {
 	uint8_t opcode;
 	uint32_t scan_id;
 } PACKED CmdCreateScanner;
 
-#define CMD_REMOVE_SCANNER_OPCODE 2
 typedef struct {
 	uint8_t opcode;
 	uint32_t scan_id;
 } PACKED CmdRemoveScanner;
 
-#define CMD_CREATE_CONNECTION_CHANNEL_OPCODE 3
 typedef struct {
 	uint8_t opcode;
 	uint32_t conn_id;
@@ -146,19 +218,16 @@ typedef struct {
 	int16_t auto_disconnect_time;
 } PACKED CmdCreateConnectionChannel;
 
-#define CMD_REMOVE_CONNECTION_CHANNEL_OPCODE 4
 typedef struct {
 	uint8_t opcode;
 	uint32_t conn_id;
 } PACKED CmdRemoveConnectionChannel;
 
-#define CMD_FORCE_DISCONNECT_OPCODE 5
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
 } PACKED CmdForceDisconnect;
 
-#define CMD_CHANGE_MODE_PARAMETERS_OPCODE 6
 typedef struct {
 	uint8_t opcode;
 	uint32_t conn_id;
@@ -166,44 +235,37 @@ typedef struct {
 	int16_t auto_disconnect_time;
 } PACKED CmdChangeModeParameters;
 
-#define CMD_PING_OPCODE 7
 typedef struct {
 	uint8_t opcode;
 	uint32_t ping_id;
 } PACKED CmdPing;
 
-#define CMD_GET_BUTTON_INFO_OPCODE 8
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
 } PACKED CmdGetButtonInfo;
 
-#define CMD_CREATE_SCAN_WIZARD_OPCODE 9
 typedef struct {
 	uint8_t opcode;
 	uint32_t scan_wizard_id;
 } PACKED CmdCreateScanWizard;
 
-#define CMD_CANCEL_SCAN_WIZARD_OPCODE 10
 typedef struct {
 	uint8_t opcode;
 	uint32_t scan_wizard_id;
 } PACKED CmdCancelScanWizard;
 
-#define CMD_DELETE_BUTTON_OPCODE 11
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
 } PACKED CmdDeleteButton;
 
-#define CMD_CREATE_BATTERY_STATUS_LISTENER_OPCODE 12
 typedef struct {
 	uint8_t opcode;
 	uint32_t listener_id;
 	uint8_t bd_addr[6];
 } PACKED CmdCreateBatteryStatusListener;
 
-#define CMD_REMOVE_BATTERY_STATUS_LISTENER_OPCODE 13
 typedef struct {
 	uint8_t opcode;
 	uint32_t listener_id;
@@ -211,7 +273,6 @@ typedef struct {
 
 /// Events
 
-#define EVT_ADVERTISEMENT_PACKET_OPCODE 0
 typedef struct {
 	uint8_t opcode;
 	uint32_t scan_id;
@@ -230,30 +291,23 @@ typedef struct {
 	uint32_t conn_id;
 } PACKED ConnectionEventBase;
 
-#define EVT_CREATE_CONNECTION_CHANNEL_RESPONSE_OPCODE 1
 typedef struct {
 	ConnectionEventBase base;
 	enum CreateConnectionChannelError error;
 	enum ConnectionStatus connection_status;
 } PACKED EvtCreateConnectionChannelResponse;
 
-#define EVT_CONNECTION_STATUS_CHANGED_OPCODE 2
 typedef struct {
 	ConnectionEventBase base;
 	enum ConnectionStatus connection_status;
 	enum DisconnectReason disconnect_reason;
 } PACKED EvtConnectionStatusChanged;
 
-#define EVT_CONNECTION_CHANNEL_REMOVED_OPCODE 3
 typedef struct {
 	ConnectionEventBase base;
 	enum RemovedReason removed_reason;
 } PACKED EvtConnectionChannelRemoved;
 
-#define EVT_BUTTON_UP_OR_DOWN_OPCODE 4
-#define EVT_BUTTON_CLICK_OR_HOLD_OPCODE 5
-#define EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE 6
-#define EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OR_HOLD_OPCODE 7
 typedef struct {
 	ConnectionEventBase base;
 	enum ClickType click_type;
@@ -261,13 +315,11 @@ typedef struct {
 	uint32_t time_diff;
 } PACKED EvtButtonEvent;
 
-#define EVT_NEW_VERIFIED_BUTTON_OPCODE 8
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
 } PACKED EvtNewVerifiedButton;
 
-#define EVT_GET_INFO_RESPONSE_OPCODE 9
 typedef struct {
 	uint8_t opcode;
 	//uint8_t BluetoothControllerState bluetooth_controller_state;
@@ -283,31 +335,26 @@ typedef struct {
 	uint8_t bd_addr_of_verified_buttons[0][6];
 } PACKED EvtGetInfoResponse;
 
-#define EVT_NO_SPACE_FOR_NEW_CONNECTION_OPCODE 10
 typedef struct {
 	uint8_t opcode;
 	uint8_t max_concurrently_connected_buttons;
 } PACKED EvtNoSpaceForNewConnection;
 
-#define EVT_GOT_SPACE_FOR_NEW_CONNECTION_OPCODE 11
 typedef struct {
 	uint8_t opcode;
 	uint8_t max_concurrently_connected_buttons;
 } PACKED EvtGotSpaceForNewConnection;
 
-#define EVT_BLUETOOTH_CONTROLLER_STATE_CHANGE_OPCODE 12
 typedef struct {
 	uint8_t opcode;
 	enum BluetoothControllerState state;
 } PACKED EvtBluetoothControllerStateChange;
 
-#define EVT_PING_RESPONSE_OPCODE 13
 typedef struct {
 	uint8_t opcode;
 	uint32_t ping_id;
 } PACKED EvtPingResponse;
 
-#define EVT_GET_BUTTON_INFO_RESPONSE_OPCODE 14
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
@@ -325,12 +372,10 @@ typedef struct {
 	uint32_t scan_wizard_id;
 } PACKED EvtScanWizardBase;
 
-#define EVT_SCAN_WIZARD_FOUND_PRIVATE_BUTTON_OPCODE 15
 typedef struct {
 	EvtScanWizardBase base;
 } PACKED EvtScanWizardFoundPrivateButton;
 
-#define EVT_SCAN_WIZARD_FOUND_PUBLIC_BUTTON_OPCODE 16
 typedef struct {
 	EvtScanWizardBase base;
 	uint8_t bd_addr[6];
@@ -338,25 +383,21 @@ typedef struct {
 	char name[16];
 } PACKED EvtScanWizardFoundPublicButton;
 
-#define EVT_SCAN_WIZARD_BUTTON_CONNECTED_OPCODE 17
 typedef struct {
 	EvtScanWizardBase base;
 } PACKED EvtScanWizardButtonConnected;
 
-#define EVT_SCAN_WIZARD_COMPLETED_OPCODE 18
 typedef struct {
 	EvtScanWizardBase base;
 	enum ScanWizardResult result;
 } PACKED EvtScanWizardCompleted;
 
-#define EVT_BUTTON_DELETED_OPCODE 19
 typedef struct {
 	uint8_t opcode;
 	uint8_t bd_addr[6];
 	uint8_t deleted_by_this_client;
 } PACKED EvtButtonDeleted;
 
-#define EVT_BATTERY_STATUS_OPCODE 20
 typedef struct {
 	uint8_t opcode;
 	uint32_t listener_id;

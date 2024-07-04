@@ -281,7 +281,7 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
     int packet_len = readbuf[0] | (readbuf[1] << 8);
     int read_pos = 0;
     int bytes_left = packet_len;
-fprintf(stderr,"flicd wants to send %d bytes\n",packet_len);
+    //fprintf(stderr,"flicd wants to send %d bytes\n",packet_len);
     
     while (bytes_left > 0) {
       nbytes = recv(sockfd, readbuf + read_pos, bytes_left, 0);
@@ -292,7 +292,7 @@ fprintf(stderr,"flicd wants to send %d bytes\n",packet_len);
       read_pos += nbytes;
       bytes_left -= nbytes;
     }
-fprintf(stderr,"flicd sent %d bytes - event=%s\n",read_pos,FLICD_EVTS[readbuf[0]]);
+    //fprintf(stderr,"flicd sent %d bytes - event=%s\n",read_pos,FLICD_EVTS[readbuf[0]]);
     
     void* pkt = (void*)readbuf;
     switch (readbuf[0]) {
@@ -439,6 +439,155 @@ static int linein(char *buf, int sz) {
   return len;
 }
 
+int handle_line(int sockfd, const char *incmd) {
+  //
+  // split cmdline into up to three words ignoring excess spaces
+  //
+  char words[4][64];
+  words[0][0]=0;
+  words[1][0]=0;
+  words[2][0]=0;
+  words[3][0]=0;
+  int wordnum=0, windex=0;
+  for (int i=0;incmd[i];i++) {
+    if(incmd[i]!=' ') { 
+      words[wordnum][windex]=incmd[i]; 
+      windex++;
+      assert(windex<63);  // sanity check overflow
+    }
+    if(incmd[i]==' ' && windex) { 
+      words[wordnum][windex]=0;
+      wordnum++; 
+      windex=0;
+      assert(wordnum<5); // sanity check overflow
+    }
+  }
+  if(windex) { 
+    words[wordnum][windex]=0;
+    wordnum++;
+    assert(wordnum<5);  // sanity check overflow
+  }
+
+  //fprintf(stderr,"wordnum=%d w0=%s w1=%s w2=%s\n",wordnum,words[0],words[1],words[2],words[3]);
+
+  if (strcmp("startScanWizard", words[0]) == 0) {
+    assert(wordnum==1);
+    CmdCreateScanWizard cmd;
+    cmd.opcode = CMD_CREATE_SCAN_WIZARD_OPCODE;
+    cmd.scan_wizard_id = 0;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+    
+    printf("Please click and hold down your Flic button!\n");
+  }
+  if (strcmp("cancelScanWizard", words[0]) == 0) {
+    assert(wordnum==1);
+    CmdCancelScanWizard cmd;
+    cmd.opcode = CMD_CANCEL_SCAN_WIZARD_OPCODE;
+    cmd.scan_wizard_id = 0;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("startScan", words[0]) == 0) {
+    assert(wordnum==1);
+    CmdCreateScanner cmd;
+    cmd.opcode = CMD_CREATE_SCANNER_OPCODE;
+    cmd.scan_id = 0;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("stopScan", words[0]) == 0) {
+    assert(wordnum==1);
+    CmdRemoveScanner cmd;
+    cmd.opcode = CMD_REMOVE_SCANNER_OPCODE;
+    cmd.scan_id = 0;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("connect", words[0]) == 0) {
+    assert(wordnum==3);
+    CmdCreateConnectionChannel cmd;
+    cmd.opcode = CMD_CREATE_CONNECTION_CHANNEL_OPCODE;
+    memcpy(cmd.bd_addr, read_bdaddr(words[1]).addr, 6);
+    sscanf(words[2],"%u", &cmd.conn_id);
+    cmd.latency_mode = NormalLatency;
+    cmd.auto_disconnect_time = 0x1ff;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("disconnect", words[0]) == 0) {
+    assert(wordnum==2);
+    CmdRemoveConnectionChannel cmd;
+    cmd.opcode = CMD_REMOVE_CONNECTION_CHANNEL_OPCODE;
+    sscanf(words[1],"%u", &cmd.conn_id);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("forceDisconnect", words[0]) == 0) {
+    assert(wordnum==2);
+    CmdForceDisconnect cmd;
+    cmd.opcode = CMD_FORCE_DISCONNECT_OPCODE;
+    memcpy(cmd.bd_addr, read_bdaddr(words[1]).addr, 6);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("changeModeParameters", words[0]) == 0) {
+    assert(wordnum==4);
+    CmdChangeModeParameters cmd;
+    cmd.opcode = CMD_CHANGE_MODE_PARAMETERS_OPCODE;
+    sscanf(words[1],"%u", &cmd.conn_id);
+    char latency_mode[32];
+    uint32_t auto_disconnect_time;
+    sscanf(words[2],"%s", latency_mode);
+    sscanf(words[3],"%u", &auto_disconnect_time);
+    int mode = 0;
+    for (int i = 0; i < 3; i++) {
+      if (strcmp(latency_mode, LatencyModeStrings[i]) == 0) {
+        mode = i;
+      }
+    }
+    cmd.latency_mode = (enum LatencyMode)mode;
+    cmd.auto_disconnect_time = auto_disconnect_time;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("getButtonInfo", words[0]) == 0) {
+    assert(wordnum==2);
+    CmdGetButtonInfo cmd;
+    cmd.opcode = CMD_GET_BUTTON_INFO_OPCODE;
+    memcpy(cmd.bd_addr, read_bdaddr(words[1]).addr, 6);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("getInfo", words[0]) == 0) {
+    assert(wordnum==1);
+    CmdGetInfo cmd;
+    cmd.opcode = CMD_GET_INFO_OPCODE;
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("createBatteryStatusListener", words[0]) == 0) {
+    assert(wordnum==3);
+    CmdCreateBatteryStatusListener cmd;
+    cmd.opcode = CMD_CREATE_BATTERY_STATUS_LISTENER_OPCODE;
+    memcpy(cmd.bd_addr, read_bdaddr(words[1]).addr, 6);
+    sscanf(words[2], "%u", &cmd.listener_id);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("removeBatteryStatusListener", words[0]) == 0) {
+    assert(wordnum==2);
+    CmdRemoveBatteryStatusListener cmd;
+    cmd.opcode = CMD_REMOVE_BATTERY_STATUS_LISTENER_OPCODE;
+    sscanf(words[1], "%u", &cmd.listener_id);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("delete", words[0]) == 0) {
+    assert(wordnum==2);
+    CmdDeleteButton cmd;
+    cmd.opcode = CMD_DELETE_BUTTON_OPCODE;
+    memcpy(cmd.bd_addr, read_bdaddr(words[1]).addr, 6);
+    write_packet(sockfd, &cmd, sizeof(cmd));
+  }
+  if (strcmp("help", words[0]) == 0) {
+    print_help();
+  }
+  if (strcmp("quit", words[0]) == 0) {
+    assert(wordnum==1);
+    return(1);
+  }
+  return(0);
+}
+
 int flicd_client_main(int argc, char* argv[]) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s host [port]\n", argv[0]);
@@ -491,105 +640,7 @@ int flicd_client_main(int argc, char* argv[]) {
       return 1;
     }
     fprintf(stderr,"stdin command: %s\n",incmd); 
-    if (strcmp("startScanWizard", incmd) == 0) {
-      CmdCreateScanWizard cmd;
-      cmd.opcode = CMD_CREATE_SCAN_WIZARD_OPCODE;
-      cmd.scan_wizard_id = 0;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-      
-      printf("Please click and hold down your Flic button!\n");
-    }
-    if (strcmp("cancelScanWizard", incmd) == 0) {
-      CmdCancelScanWizard cmd;
-      cmd.opcode = CMD_CANCEL_SCAN_WIZARD_OPCODE;
-      cmd.scan_wizard_id = 0;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("startScan", incmd) == 0) {
-      CmdCreateScanner cmd;
-      cmd.opcode = CMD_CREATE_SCANNER_OPCODE;
-      cmd.scan_id = 0;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("stopScan", incmd) == 0) {
-      CmdRemoveScanner cmd;
-      cmd.opcode = CMD_REMOVE_SCANNER_OPCODE;
-      cmd.scan_id = 0;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strstr(incmd, "connect") == incmd) {
-      CmdCreateConnectionChannel cmd;
-      cmd.opcode = CMD_CREATE_CONNECTION_CHANNEL_OPCODE;
-      memcpy(cmd.bd_addr, read_bdaddr(&incmd[8]).addr, 6);
-      scanf("%u", &cmd.conn_id);
-      cmd.latency_mode = NormalLatency;
-      cmd.auto_disconnect_time = 0x1ff;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("disconnect", incmd) == 0) {
-      CmdRemoveConnectionChannel cmd;
-      cmd.opcode = CMD_REMOVE_CONNECTION_CHANNEL_OPCODE;
-      scanf("%u", &cmd.conn_id);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strstr(incmd, "forceDisconnect") == incmd) {
-      CmdForceDisconnect cmd;
-      cmd.opcode = CMD_FORCE_DISCONNECT_OPCODE;
-      memcpy(cmd.bd_addr, read_bdaddr(&incmd[16]).addr, 6);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("changeModeParameters", incmd) == 0) {
-      CmdChangeModeParameters cmd;
-      cmd.opcode = CMD_CHANGE_MODE_PARAMETERS_OPCODE;
-      scanf("%u", &cmd.conn_id);
-      char latency_mode[32];
-      uint32_t auto_disconnect_time;
-      scanf("%s %u", latency_mode, &auto_disconnect_time);
-      int mode = 0;
-      for (int i = 0; i < 3; i++) {
-        if (strcmp(latency_mode, LatencyModeStrings[i]) == 0) {
-          mode = i;
-        }
-      }
-      cmd.latency_mode = (enum LatencyMode)mode;
-      cmd.auto_disconnect_time = auto_disconnect_time;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strstr(incmd,"getButtonInfo ") == incmd) {
-      CmdGetButtonInfo cmd;
-      cmd.opcode = CMD_GET_BUTTON_INFO_OPCODE;
-      memcpy(cmd.bd_addr, read_bdaddr(&incmd[14]).addr, 6);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("getInfo", incmd) == 0) {
-      CmdGetInfo cmd;
-      cmd.opcode = CMD_GET_INFO_OPCODE;
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strstr(incmd,"createBatteryStatusListener") == incmd) {
-      CmdCreateBatteryStatusListener cmd;
-      cmd.opcode = CMD_CREATE_BATTERY_STATUS_LISTENER_OPCODE;
-      memcpy(cmd.bd_addr, read_bdaddr(&incmd[28]).addr, 6);
-      scanf("%u", &cmd.listener_id);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("removeBatteryStatusListener", incmd) == 0) {
-      CmdRemoveBatteryStatusListener cmd;
-      cmd.opcode = CMD_REMOVE_BATTERY_STATUS_LISTENER_OPCODE;
-      scanf("%u", &cmd.listener_id);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strstr(incmd, "delete") == incmd) {
-      CmdDeleteButton cmd;
-      cmd.opcode = CMD_DELETE_BUTTON_OPCODE;
-      memcpy(cmd.bd_addr, read_bdaddr(&incmd[7]).addr, 6);
-      write_packet(sockfd, &cmd, sizeof(cmd));
-    }
-    if (strcmp("help", incmd) == 0) {
-      print_help();
-    }
-    if (strcmp("quit", incmd) == 0) {
-      return(0);
-    }
+    ret=handle_line(sockfd, incmd);
+    if(ret) { return 0; }
   }
 }

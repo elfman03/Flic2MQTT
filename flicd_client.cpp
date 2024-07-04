@@ -345,7 +345,7 @@ fprintf(stderr,"flicd sent %d bytes - event=%s\n",read_pos,FLICD_EVTS[readbuf[0]
       }
       case EVT_GET_INFO_RESPONSE_OPCODE: {
         EvtGetInfoResponse* evt = (EvtGetInfoResponse*)pkt;
-        fprintf(stderr,"Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
+        printf("Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
                BluetoothControllerStateStrings[evt->bluetooth_controller_state],
                Bdaddr(evt->my_bd_addr).to_string().c_str(),
                BdAddrTypeStrings[evt->my_bd_addr_type],
@@ -353,9 +353,9 @@ fprintf(stderr,"flicd sent %d bytes - event=%s\n",read_pos,FLICD_EVTS[readbuf[0]
                evt->max_concurrently_connected_buttons,
                evt->current_pending_connections,
                evt->currently_no_space_for_new_connection ? 'y' : 'n');
-        fputs(evt->nb_verified_buttons > 0 ? "Verified buttons:" : "No verified buttons yet",stderr);
+        puts(evt->nb_verified_buttons > 0 ? "Verified buttons:" : "No verified buttons yet");
         for(int i = 0; i < evt->nb_verified_buttons; i++) {
-          fprintf(stderr,"%s\n", Bdaddr(evt->bd_addr_of_verified_buttons[i]).to_string().c_str());
+          printf("%s\n", Bdaddr(evt->bd_addr_of_verified_buttons[i]).to_string().c_str());
         }
         break;
       }

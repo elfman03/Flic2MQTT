@@ -51,6 +51,9 @@ linux #include <netdb.h>
 using namespace std;
 using namespace FlicClientProtocol;
 
+static DWORD theFlicdReaderTid;             // Thread identifier of Flicd reader
+static HANDLE theFlicdReaderHandle;         // Handle of Flicd reader
+
 static const char* CreateConnectionChannelErrorStrings[] = {
   "NoError",
   "MaxPendingConnectionsReached"
@@ -439,7 +442,7 @@ static int linein(char *buf, int sz) {
   return len;
 }
 
-int handle_line(int sockfd, const char *incmd) {
+int flicd_client_handle_line(int sockfd, const char *incmd) {
   //
   // split cmdline into up to three words ignoring excess spaces
   //
@@ -588,43 +591,67 @@ int handle_line(int sockfd, const char *incmd) {
   return(0);
 }
 
+int flicd_client_init(const char *host, int port) {
+  winsock_init();
+
+  // check for valid host
+  //
+  struct hostent* server = gethostbyname(host);
+  if (server == NULL) {
+    fprintf(stderr, "ERROR: no such host: %s\n",host);
+    return -1;
+  }
+
+  // create socket and check for validity
+  //
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) {
+    fprintf(stderr, "ERROR: failure creating socket\n");
+    perror("socket");
+    return sockfd;
+  }
+
+  // connect and check for valid connection
+  //
+  struct sockaddr_in serv_addr;
+  memset(&serv_addr, 0, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+  serv_addr.sin_port = htons(port);
+  
+  if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+    fprintf(stderr, "ERROR: failure connecting socket\n");
+    perror("connect");
+    close(sockfd);
+    return -1;
+  }
+
+  // Create reader thread and verify successful creation
+  //
+  int *tmp=(int*)malloc(sizeof(int));
+  *tmp=sockfd;
+  theFlicdReaderHandle=CreateThread(NULL,0,flicd_client_reader,tmp,0,&theFlicdReaderTid);
+  if(!theFlicdReaderHandle) {
+    fprintf(stderr, "ERROR: fail creating flicd client reader thread\n");
+    close(sockfd);
+    return -1;
+  }
+
+  return sockfd;
+}
+
 int flicd_client_main(int argc, char* argv[]) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s host [port]\n", argv[0]);
     return 1;
   }
-  winsock_init();
+  int port=5551;
+  if(argc >= 3) { port=atoi(argv[2]); }
+  int sockfd=flicd_client_init(argv[1], port);
 
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) {
-    perror("socket");
-    return 1;
-  }
-  struct hostent* server = gethostbyname(argv[1]);
-  if (server == NULL) {
-    fprintf(stderr, "ERROR, no such host\n");
-    return 1;
-  }
-  struct sockaddr_in serv_addr;
-  memset(&serv_addr, 0, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
-  serv_addr.sin_port = htons(argc >= 3 ? atoi(argv[2]) : 5551);
-  
-  if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-    perror("connect");
-    return 1;
-  }
-  
+  if(sockfd<0) { return -1; }
+ 
   print_help();
-  DWORD tid;
-  int *tmp=(int*)malloc(sizeof(int));
-  *tmp=sockfd;
-  HANDLE thandle=CreateThread(NULL,0,flicd_client_reader,tmp,0,&tid);
-  if(thandle==NULL) {
-    fprintf(stderr, "ERROR, fail creating flicd reader thread\n");
-    return 1;
-  }
   
   while(1) {
     int ret;
@@ -640,7 +667,9 @@ int flicd_client_main(int argc, char* argv[]) {
       return 1;
     }
     fprintf(stderr,"stdin command: %s\n",incmd); 
-    ret=handle_line(sockfd, incmd);
-    if(ret) { return 0; }
+    ret=flicd_client_handle_line(sockfd, incmd);
+    if(ret) { 
+      return 0; 
+    }
   }
 }

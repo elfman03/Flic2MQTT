@@ -15,6 +15,8 @@ private:
   char *logfileName;
   char *mqttServer;
   char *mqttTopicBase;
+  char *flicdServer;
+  int   flicdPort;
   char *flicName[8];
   char *flicMac[8];
   
@@ -24,6 +26,8 @@ public:
   FILE *getLogfile();
   const char *getMqttServer();
   const char *getMqttTopicBase();
+  const char *getFlicdServer();
+  int getFlicdPort();
   const char *getFlicName(int i);
   const char *getFlicMac(int i);
 };

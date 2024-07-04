@@ -13,6 +13,8 @@
 FILE       *Config::getLogfile()               { return logfile;             }
 const char *Config::getMqttServer()            { return mqttServer;          }
 const char *Config::getMqttTopicBase()         { return mqttTopicBase;       }
+const char *Config::getFlicdServer()           { return flicdServer;         }
+int         Config::getFlicdPort()             { return flicdPort;           }
 const char *Config::getFlicName(int i)         { return flicName[i];         }
 const char *Config::getFlicMac(int i)          { return flicMac[i];          }
 
@@ -38,6 +40,8 @@ void Config::readConfig(const char *fname) {
   if(logfileName)      { free(logfileName);      logfileName=0;      }
   if(mqttServer)       { free(mqttServer);       mqttServer=0;       }
   if(mqttTopicBase)    { free(mqttTopicBase);    mqttTopicBase=0;    }
+  if(flicdServer)      { free(flicdServer);      flicdServer=0;      }
+  flicdPort=5551;
   for(i=0;i<8;i++) {
     if(flicName[i]) { free(flicName[i]);  flicName[i]=0; }
     if(flicMac[i])  { free(flicMac[i]);   flicMac[i]=0;  }
@@ -103,6 +107,18 @@ void Config::readConfig(const char *fname) {
   mqttTopicBase=strdup(&p[16]);
   *q='\n';
 
+  p=strstr(buf,"FLICD_SERVER=");
+  for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  *q=0;
+  flicdServer=strdup(&p[13]);
+  *q='\n';
+
+  p=strstr(buf,"FLICD_PORT=");
+  for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  *q=0;
+  flicdPort=atoi(&p[11]);
+  *q='\n';
+
   char chartmp[24];
   for(i=0;i<8;i++) {
     sprintf(chartmp,"FLIC_NAME_%02d=",i);
@@ -128,6 +144,8 @@ void Config::readConfig(const char *fname) {
     fprintf(logfile,"LOGFILE=%s\n",logfileName);
     fprintf(logfile,"MQTT_SERVER=%s\n",mqttServer);
     fprintf(logfile,"MQTT_TOPIC_BASE=%s\n",mqttTopicBase);
+    fprintf(logfile,"FLICD_SERVER=%s\n",flicdServer);
+    fprintf(logfile,"FLICD_PORT=%d\n",flicdPort);
     for(i=0;i<8;i++) {
       fprintf(logfile,"FLIC_NAME_%02d=%s\n",i,flicName[i]);
       fprintf(logfile,"FLIC_MAC_%02d=%s\n",i,flicMac[i]);

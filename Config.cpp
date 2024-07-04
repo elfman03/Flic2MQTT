@@ -14,14 +14,14 @@ FILE       *Config::getLogfile()               { return logfile;             }
 const char *Config::getMqttServer()            { return mqttServer;          }
 const char *Config::getMqttTopicBase()         { return mqttTopicBase;       }
 const char *Config::getFlicName(int i)         { return flicName[i];         }
-int         Config::getFlicId(int i)           { return flicId[i];           }
+const char *Config::getFlicMac(int i)          { return flicMac[i];          }
 
 Config::Config() { 
   logfile=0;
   logfileName=0;
   mqttServer=0;
   mqttTopicBase=0;
-  for(int i=0;i<8;i++) { flicName[i]=0; flicId[i]=0; }
+  for(int i=0;i<8;i++) { flicName[i]=0; flicMac[i]=0; }
 }
 
 //
@@ -39,8 +39,8 @@ void Config::readConfig(const char *fname) {
   if(mqttServer)       { free(mqttServer);       mqttServer=0;       }
   if(mqttTopicBase)    { free(mqttTopicBase);    mqttTopicBase=0;    }
   for(i=0;i<8;i++) {
-    if(flicName[i]) { free(flicName[i]);   flicName[i]=0; }
-    flicId[i]=0;
+    if(flicName[i]) { free(flicName[i]);  flicName[i]=0; }
+    if(flicMac[i])  { free(flicMac[i]);   flicMac[i]=0;  }
   }
 
   f=fopen(fname,"r");
@@ -105,20 +105,20 @@ void Config::readConfig(const char *fname) {
 
   char chartmp[24];
   for(i=0;i<8;i++) {
-    sprintf(chartmp,"FLIC_NAME_%d=",i);
+    sprintf(chartmp,"FLIC_NAME_%02d=",i);
     p=strstr(buf,chartmp);
     if(p) {
       for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
       *q=0;
-      flicName[i]=strdup(&p[12]);
+      flicName[i]=strdup(&p[strlen(chartmp)]);
       *q='\n';
     }
-    sprintf(chartmp,"FLIC_ID_%d=",i);
+    sprintf(chartmp,"FLIC_MAC_%02d=",i);
     p=strstr(buf,chartmp);
     if(p) {
       for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
       *q=0;
-      flicId[i]=atoi(&p[10]);
+      flicMac[i]=strdup(&p[strlen(chartmp)]);
       *q='\n';
     }
   }
@@ -129,8 +129,8 @@ void Config::readConfig(const char *fname) {
     fprintf(logfile,"MQTT_SERVER=%s\n",mqttServer);
     fprintf(logfile,"MQTT_TOPIC_BASE=%s\n",mqttTopicBase);
     for(i=0;i<8;i++) {
-      fprintf(logfile,"FLIC_NAME_%d=%s\n",i,flicName[i]);
-      fprintf(logfile,"FLIC_ID_%d=%d\n",i,flicId[i]);
+      fprintf(logfile,"FLIC_NAME_%02d=%s\n",i,flicName[i]);
+      fprintf(logfile,"FLIC_MAC_%02d=%s\n",i,flicMac[i]);
     }
   }
 #endif

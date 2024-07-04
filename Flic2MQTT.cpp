@@ -26,9 +26,24 @@ int packetCountEpoch;
 
 extern int flicd_client_main(int argc, char *argv[]);
 
+void Usage() {
+  fprintf(stderr,"flic2MQTT                               # this message\n");
+  fprintf(stderr,"flic2MQTT -interact host [port]         # run a flic simpleclient to host[port]\n");
+  fprintf(stderr,"flic2MQTT -mqtt                         # run in mqtt mode with settings from Flic2MQTT.config\n");
+}
+
 int main(int argc, char *argv[]) {
-  if(argc>1) {
-    flicd_client_main(argc,argv);
+  if(argc>1 && !strcmp(argv[1],"-interact")) {
+    //
+    // for interactive mode pass remainder of command line to the flicd simple client
+    //
+    flicd_client_main(argc-1,&argv[1]);
+    return(0);
+  }
+  if(argc==2 && !strcmp(argv[1],"-mqtt")) {
+    fprintf(stderr,"MQTT mode.  lets go!\n");
+  } else {
+    Usage();
     return(0);
   }
 

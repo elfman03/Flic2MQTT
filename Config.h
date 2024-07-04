@@ -16,7 +16,7 @@ private:
   char *mqttServer;
   char *mqttTopicBase;
   char *flicName[8];
-  int flicId[8];
+  char *flicMac[8];
   
 public:
   Config();
@@ -25,7 +25,7 @@ public:
   const char *getMqttServer();
   const char *getMqttTopicBase();
   const char *getFlicName(int i);
-  int getFlicId(int i);
+  const char *getFlicMac(int i);
 };
 
 #endif

@@ -255,11 +255,16 @@ static void print_help() {
   fprintf(stderr, help_text);
 }
 
+static void zero32(char *p) {
+  for(int i=0;i<32;i++) { p[i]=0; }
+}
+
 static DWORD WINAPI flicd_client_reader(LPVOID param) {
   int sockfd=*((int*)param);
   free(param);
   char *readbuf=(char *)malloc(65536+4);
   assert(readbuf);
+  char piper[32];
 
   while(1) {
     int nbytes = recv(sockfd, readbuf, 2, 0);
@@ -339,6 +344,12 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
         EvtGetInfoResponse* evt = (EvtGetInfoResponse*)pkt;
         if(thePipeW) {
           fprintf(stderr,"pipe exists...  I should send this info to the main thread\n");
+          zero32(piper);
+          piper[0]=FLIC_INFO_GENERAL;
+          piper[1]=FLIC_STATUS_OK;
+          piper[2]=FLIC_BUTTON_ALL;
+          sprintf(&piper[3],"%s",BluetoothControllerStateStrings[evt->bluetooth_controller_state]);
+          _write(thePipeW,piper,32);
         }
         printf("Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
                BluetoothControllerStateStrings[evt->bluetooth_controller_state],

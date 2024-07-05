@@ -17,19 +17,11 @@
 #include "global.h"
 #include "Config.h"
 #include "PahoWrapper.h"
+#include "flicd_client.h"
 
 Config *myConfig=new Config();
 PahoWrapper *myPaho=0;
 int thePipeR=0,thePipeW=0;
-
-#define FLIC_INFO_GENERAL 0
-#define FLIC_INFO_BUTTON  1
-#define FLIC_CONNECT      2
-#define FLIC_UPDOWN       3
-#define FLIC_STATUS_OK    0
-#define FLIC_STATUS_FATAL 255
-#define FLIC_BUTTON_ALL   255
-#define FLIC_BUFSIZE      32
 
 DWORD firstTick;
 DWORD continueTick;
@@ -136,6 +128,9 @@ int main(int argc, char *argv[]) {
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
+    char piper[32];
+    _read(thePipeR,piper,32);
+    fprintf(stderr,"piper got %d %d %d %s\n",piper[0],piper[1],piper[2],&piper[3]);
     //
     // Why did looper end?
     //

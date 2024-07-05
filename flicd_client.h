@@ -16,17 +16,23 @@
  *   char operation;
  *   char status;
  *   char button;
- *   char [29] str;     // Make sure to have a null in byte 29
+ *   char [29] str;     // Make sure to have a null in offset 28
  * }
  */
 
 //
 // Operation
 //
-#define FLIC_INFO_GENERAL 0
-#define FLIC_INFO_BUTTON  1
-#define FLIC_CONNECT      2
-#define FLIC_UPDOWN       3
+#define FLIC_PING         0   // periodic message over pipe for sanity
+#define FLIC_INFO_GENERAL 1   // getInfo response
+#define FLIC_CONNECT      2   // connect response
+#define FLIC_STATUS       3   // button status changes (online/offline)
+#define FLIC_UPDOWN       4   // down/up/hold message
+static const char *FLIC_OPS[]={"FLIC_PING",
+                        "FLIC_INFO_GENERAL",
+                        "FLIC_CONNECT",
+                        "FLIC_STATUS",
+                        "FLIC_UPDOWN"};
 //
 // Status
 //

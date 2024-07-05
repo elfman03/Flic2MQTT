@@ -107,7 +107,11 @@ int main(int argc, char *argv[]) {
   pt->markAvailable(false);
   myPaho=pt;
 
-  status=flicd_client_handle_line(sockfd, "getInfo");
+  //status=flicd_client_handle_line(sockfd, "getInfo");
+  char cmd[32];
+  sprintf(cmd,"connect %s %d",myConfig->getFlicMac(0),0);
+  fprintf(stderr,"cmd=%s\n",cmd);
+  status=flicd_client_handle_line(sockfd, cmd);
   fprintf(stderr,"handle_line status=%d\n",status);
   //
   // Loop as long as the flicd returns a normal condition.
@@ -128,9 +132,15 @@ int main(int argc, char *argv[]) {
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
+    while(1){
     char piper[32];
     _read(thePipeR,piper,32);
-    fprintf(stderr,"piper got %d %d %d %s\n",piper[0],piper[1],piper[2],&piper[3]);
+    int flicOp=piper[0];
+    int flicStat=piper[1];
+    int flicButt=piper[2];
+    const char *flicMsg=&piper[3];
+    fprintf(stderr,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+    }
     //
     // Why did looper end?
     //

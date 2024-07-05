@@ -255,8 +255,19 @@ static void print_help() {
   fprintf(stderr, help_text);
 }
 
-static void zero32(char *p) {
-  for(int i=0;i<32;i++) { p[i]=0; }
+static void pipe_send(char operation, char status, char button, const char *str) {
+  int i;
+  char piper[32];
+  //
+  // assemble a packet and write it to the main thread pipe
+  //
+  piper[0]=operation;
+  piper[1]=status;
+  piper[2]=button;
+  for(i=0;str[i] && i<28;i++) { piper[i+3]=str[i]; }  // copy up to 28 bytes of incoming string
+  for(i=i+3;i<32;i++)         { piper[i]=0;        }  // fill remainder of message with nulls
+  //
+  _write(thePipeW,piper,32);
 }
 
 static DWORD WINAPI flicd_client_reader(LPVOID param) {
@@ -264,7 +275,6 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
   free(param);
   char *readbuf=(char *)malloc(65536+4);
   assert(readbuf);
-  char piper[32];
 
   while(1) {
     int nbytes = recv(sockfd, readbuf, 2, 0);
@@ -305,16 +315,24 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       }
       case EVT_CREATE_CONNECTION_CHANNEL_RESPONSE_OPCODE: {
         EvtCreateConnectionChannelResponse* evt = (EvtCreateConnectionChannelResponse*)pkt;
-        printf("Create conn: %d %s %s\n", evt->base.conn_id, CreateConnectionChannelErrorStrings[evt->error], ConnectionStatusStrings[evt->connection_status]);
+        if(thePipeW) {
+          pipe_send(FLIC_CONNECT, FLIC_STATUS_OK, evt->base.conn_id, ConnectionStatusStrings[evt->error]);
+        } else {
+          printf("Create conn: %d %s %s\n", evt->base.conn_id, CreateConnectionChannelErrorStrings[evt->error], ConnectionStatusStrings[evt->connection_status]);
+        }
         break;
       }
       case EVT_CONNECTION_STATUS_CHANGED_OPCODE: {
         EvtConnectionStatusChanged* evt = (EvtConnectionStatusChanged*)pkt;
-        printf("Connection status changed: %d %s", evt->base.conn_id, ConnectionStatusStrings[evt->connection_status]);
-        if (evt->connection_status == Disconnected) {
-          printf(" %s\n", DisconnectReasonStrings[evt->disconnect_reason]);
+        if(thePipeW) {
+          pipe_send(FLIC_STATUS, FLIC_STATUS_OK, evt->base.conn_id, ConnectionStatusStrings[evt->connection_status]);
         } else {
-          printf("\n");
+          printf("Connection status changed: %d %s", evt->base.conn_id, ConnectionStatusStrings[evt->connection_status]);
+          if (evt->connection_status == Disconnected) {
+            printf(" %s\n", DisconnectReasonStrings[evt->disconnect_reason]);
+          } else {
+            printf("\n");
+          }
         }
         break;
       }
@@ -329,10 +347,16 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       case EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OR_HOLD_OPCODE: {
         EvtButtonEvent* evt = (EvtButtonEvent*)pkt;
         if(thePipeW) {
-          fprintf(stderr,"pipe exists...  I should send this press info to the main thread\n");
+          if (readbuf[0]==EVT_BUTTON_UP_OR_DOWN_OPCODE) {
+            pipe_send(FLIC_UPDOWN, FLIC_STATUS_OK, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+          }
+          if (readbuf[0]==EVT_BUTTON_CLICK_OR_HOLD_OPCODE && evt->click_type==ButtonHold) {
+            pipe_send(FLIC_UPDOWN, FLIC_STATUS_OK, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+          }
+        } else {
+          static const char* types[] = {"Button up/down", "Button click/hold", "Button single/double click", "Button single/double click/hold"};
+          printf("%s: %d, %s, %s, %d seconds ago\n", types[readbuf[0]-EVT_BUTTON_UP_OR_DOWN_OPCODE], evt->base.conn_id, ClickTypeStrings[evt->click_type], (evt->was_queued ? "queued" : "not queued"), evt->time_diff);
         }
-        static const char* types[] = {"Button up/down", "Button click/hold", "Button single/double click", "Button single/double click/hold"};
-        printf("%s: %d, %s, %s, %d seconds ago\n", types[readbuf[0]-EVT_BUTTON_UP_OR_DOWN_OPCODE], evt->base.conn_id, ClickTypeStrings[evt->click_type], (evt->was_queued ? "queued" : "not queued"), evt->time_diff);
         break;
       }
       case EVT_NEW_VERIFIED_BUTTON_OPCODE: {
@@ -343,15 +367,9 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       case EVT_GET_INFO_RESPONSE_OPCODE: {
         EvtGetInfoResponse* evt = (EvtGetInfoResponse*)pkt;
         if(thePipeW) {
-          fprintf(stderr,"pipe exists...  I should send this info to the main thread\n");
-          zero32(piper);
-          piper[0]=FLIC_INFO_GENERAL;
-          piper[1]=FLIC_STATUS_OK;
-          piper[2]=FLIC_BUTTON_ALL;
-          sprintf(&piper[3],"%s",BluetoothControllerStateStrings[evt->bluetooth_controller_state]);
-          _write(thePipeW,piper,32);
-        }
-        printf("Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
+          pipe_send(FLIC_INFO_GENERAL, FLIC_STATUS_OK, FLIC_BUTTON_ALL, BluetoothControllerStateStrings[evt->bluetooth_controller_state]);
+        } else {
+          printf("Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
                BluetoothControllerStateStrings[evt->bluetooth_controller_state],
                Bdaddr(evt->my_bd_addr).to_string().c_str(),
                BdAddrTypeStrings[evt->my_bd_addr_type],
@@ -359,9 +377,10 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
                evt->max_concurrently_connected_buttons,
                evt->current_pending_connections,
                evt->currently_no_space_for_new_connection ? 'y' : 'n');
-        puts(evt->nb_verified_buttons > 0 ? "Verified buttons:" : "No verified buttons yet");
-        for(int i = 0; i < evt->nb_verified_buttons; i++) {
-          printf("%s\n", Bdaddr(evt->bd_addr_of_verified_buttons[i]).to_string().c_str());
+          puts(evt->nb_verified_buttons > 0 ? "Verified buttons:" : "No verified buttons yet");
+          for(int i = 0; i < evt->nb_verified_buttons; i++) {
+            printf("%s\n", Bdaddr(evt->bd_addr_of_verified_buttons[i]).to_string().c_str());
+          }
         }
         break;
       }
@@ -382,9 +401,6 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       }
       case EVT_GET_BUTTON_INFO_RESPONSE_OPCODE: {
         EvtGetButtonInfoResponse* evt = (EvtGetButtonInfoResponse*)pkt;
-        if(thePipeW) {
-          fprintf(stderr,"pipe exists...  I should send this button info to the main thread\n");
-        }
         printf("Button info response: %s %s %s %s %d %d\n",
                Bdaddr(evt->bd_addr).to_string().c_str(),
                bytes_to_hex_string(evt->uuid, sizeof(evt->uuid)).c_str(),

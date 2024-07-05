@@ -31,13 +31,11 @@ linux #include <sys/ioctl.h>
 linux #include <sys/socket.h>
 linux #include <arpa/inet.h>
 linux #include <netdb.h>
-#define IOCTL ioctl
 #endif
 
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
 #define STDIN_FILENO 0
-#define IOCTL ioctlsocket
 
 #include <io.h>
 #include <time.h>
@@ -47,6 +45,7 @@ linux #include <netdb.h>
 #endif
 
 #include "flicd_client_protocol_packets.h"
+extern int thePipeW;     // the pipe to use to send flic info to the main thread
 
 using namespace std;
 using namespace FlicClientProtocol;
@@ -255,25 +254,11 @@ static void print_help() {
   fprintf(stderr, help_text);
 }
 
-static int winsock_init() {
-  int ret;
-  WSADATA wsaData;
-  ret = WSAStartup(MAKEWORD(2,2), &wsaData);
-  if(ret != 0) {
-    printf("WSAStartup failed with error: %d\n", ret);
-    return 1;
-  }
-  return 0;
-}
-
-static void winsock_cleanup() {
-  WSACleanup();
-}
-
 static DWORD WINAPI flicd_client_reader(LPVOID param) {
   int sockfd=*((int*)param);
   free(param);
-  char readbuf[65537];
+  char *readbuf=(char *)malloc(65536+4);
+  assert(readbuf);
 
   while(1) {
     int nbytes = recv(sockfd, readbuf, 2, 0);
@@ -337,6 +322,9 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       case EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE:
       case EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OR_HOLD_OPCODE: {
         EvtButtonEvent* evt = (EvtButtonEvent*)pkt;
+        if(thePipeW) {
+          fprintf(stderr,"pipe exists...  I should send this press info to the main thread\n");
+        }
         static const char* types[] = {"Button up/down", "Button click/hold", "Button single/double click", "Button single/double click/hold"};
         printf("%s: %d, %s, %s, %d seconds ago\n", types[readbuf[0]-EVT_BUTTON_UP_OR_DOWN_OPCODE], evt->base.conn_id, ClickTypeStrings[evt->click_type], (evt->was_queued ? "queued" : "not queued"), evt->time_diff);
         break;
@@ -348,6 +336,9 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       }
       case EVT_GET_INFO_RESPONSE_OPCODE: {
         EvtGetInfoResponse* evt = (EvtGetInfoResponse*)pkt;
+        if(thePipeW) {
+          fprintf(stderr,"pipe exists...  I should send this info to the main thread\n");
+        }
         printf("Got info: %s, %s (%s), max pending connections: %d, max conns: %d, current pending conns: %d, currently no space: %c\n",
                BluetoothControllerStateStrings[evt->bluetooth_controller_state],
                Bdaddr(evt->my_bd_addr).to_string().c_str(),
@@ -379,6 +370,9 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
       }
       case EVT_GET_BUTTON_INFO_RESPONSE_OPCODE: {
         EvtGetButtonInfoResponse* evt = (EvtGetButtonInfoResponse*)pkt;
+        if(thePipeW) {
+          fprintf(stderr,"pipe exists...  I should send this button info to the main thread\n");
+        }
         printf("Button info response: %s %s %s %s %d %d\n",
                Bdaddr(evt->bd_addr).to_string().c_str(),
                bytes_to_hex_string(evt->uuid, sizeof(evt->uuid)).c_str(),
@@ -592,7 +586,7 @@ int flicd_client_handle_line(int sockfd, const char *incmd) {
 }
 
 int flicd_client_init(const char *host, int port) {
-  winsock_init();
+  fprintf(stderr,"host=%s len=%d port=%d\n",host,(int)strlen(host),port);
 
   // check for valid host
   //

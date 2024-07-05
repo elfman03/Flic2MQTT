@@ -21,8 +21,10 @@ const char *Config::getFlicMac(int i)          { return flicMac[i];          }
 Config::Config() { 
   logfile=0;
   logfileName=0;
+  flicdServer=0;
   mqttServer=0;
   mqttTopicBase=0;
+  flicdPort=0;
   for(int i=0;i<8;i++) { flicName[i]=0; flicMac[i]=0; }
 }
 
@@ -33,7 +35,7 @@ void Config::readConfig(const char *fname) {
   FILE *f;
   int i, ch;
   char buf[4096];
-  char *p,*q;
+  char cc,*p,*q;
 
   if(logfile && logfile!=stderr && logfile!=stdout) { fclose(logfile); }
   logfile=0;
@@ -70,9 +72,10 @@ void Config::readConfig(const char *fname) {
   p=strstr(buf,"LOGFILE=");
   if(p) {
     for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+    cc=*q; 
     *q=0;
     logfileName=strdup(&p[8]);
-    *q='\n';
+    *q=cc;
     if(!strcmp(logfileName,"stderr")) {
       logfile=stderr;
     } else if(!strcmp(logfileName,"stdout")) {
@@ -97,27 +100,31 @@ void Config::readConfig(const char *fname) {
 
   p=strstr(buf,"MQTT_SERVER=");
   for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  cc=*q;
   *q=0;
   mqttServer=strdup(&p[12]);
-  *q='\n';
+  *q=cc;
 
   p=strstr(buf,"MQTT_TOPIC_BASE=");
   for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  cc=*q;
   *q=0;
   mqttTopicBase=strdup(&p[16]);
-  *q='\n';
+  *q=cc;
 
   p=strstr(buf,"FLICD_SERVER=");
   for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  cc=*q;
   *q=0;
   flicdServer=strdup(&p[13]);
-  *q='\n';
+  *q=cc;
 
   p=strstr(buf,"FLICD_PORT=");
   for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+  cc=*q;
   *q=0;
   flicdPort=atoi(&p[11]);
-  *q='\n';
+  *q=cc;
 
   char chartmp[24];
   for(i=0;i<8;i++) {
@@ -125,17 +132,19 @@ void Config::readConfig(const char *fname) {
     p=strstr(buf,chartmp);
     if(p) {
       for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+      cc=*q;
       *q=0;
       flicName[i]=strdup(&p[strlen(chartmp)]);
-      *q='\n';
+      *q=cc;
     }
     sprintf(chartmp,"FLIC_MAC_%02d=",i);
     p=strstr(buf,chartmp);
     if(p) {
       for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+      cc=*q;
       *q=0;
       flicMac[i]=strdup(&p[strlen(chartmp)]);
-      *q='\n';
+      *q=cc;
     }
   }
 

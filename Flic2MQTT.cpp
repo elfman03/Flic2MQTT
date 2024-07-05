@@ -5,8 +5,13 @@
  *
  */
 
+#define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
-#include <winhttp.h>
+#include <io.h>
+#include <fcntl.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <time.h>
 #include <stdio.h>
 #include "global.h"
@@ -14,7 +19,8 @@
 #include "PahoWrapper.h"
 
 Config *myConfig=new Config();
-PahoWrapper *myPaho;
+PahoWrapper *myPaho=0;
+int thePipeR=0,thePipeW=0;
 
 DWORD firstTick;
 DWORD continueTick;
@@ -25,6 +31,8 @@ int packetCount;
 int packetCountEpoch;
 
 extern int flicd_client_main(int argc, char *argv[]);
+extern int flicd_client_init(const char *server, int port);
+extern int flicd_client_handle_line(int sockfd, const char *incmd);
 
 void Usage() {
   fprintf(stderr,"flic2MQTT                               # this message\n");
@@ -32,7 +40,27 @@ void Usage() {
   fprintf(stderr,"flic2MQTT -mqtt                         # run in mqtt mode with settings from Flic2MQTT.config\n");
 }
 
+static int winsock_init() {
+  int ret;
+  WSADATA wsaData;
+  ret = WSAStartup(MAKEWORD(2,2), &wsaData);
+  if(ret != 0) {
+    printf("WSAStartup failed with error: %d\n", ret);
+    return 1;
+  }
+  return 0;
+}
+
+static void winsock_cleanup() {
+  WSACleanup();
+}
+
 int main(int argc, char *argv[]) {
+  int status;
+  int pipes[2];
+
+  winsock_init();
+
   if(argc>1 && !strcmp(argv[1],"-interact")) {
     //
     // for interactive mode pass remainder of command line to the flicd simple client
@@ -47,16 +75,39 @@ int main(int argc, char *argv[]) {
     return(0);
   }
 
-  int status;
+  status=_pipe(pipes,1024,O_BINARY);
+  if(status==-1) {
+    fprintf(stderr, "Error creating pipes\n");
+    return -1;
+  }
+  thePipeR=pipes[0];
+  thePipeW=pipes[1];
+
   //
   // Load Config
   //
   fprintf(stderr, "Loading Config File\n");
   myConfig->readConfig("Flic2MQTT.config");
   logfile=myConfig->getLogfile();
-  myPaho=new PahoWrapper(myConfig);
-  myPaho->markAvailable(false);
 
+  //
+  // Initialize Flic
+  //
+  int sockfd=flicd_client_init(myConfig->getFlicdServer(), myConfig->getFlicdPort());
+  if(sockfd<0) {
+    if(logfile) { fprintf(logfile,"Error connecting to flicd server\n"); }
+    return -1;
+  }
+
+  //
+  // Initialize MQTT
+  //
+  PahoWrapper *pt=new PahoWrapper(myConfig);
+  pt->markAvailable(false);
+  myPaho=pt;
+
+  status=flicd_client_handle_line(sockfd, "getInfo");
+  fprintf(stderr,"handle_line status=%d\n",status);
   //
   // Loop as long as the flicd returns a normal condition.
   //
@@ -69,15 +120,11 @@ int main(int argc, char *argv[]) {
     firstTick=continueTick=availabilityTick=0;
     epochNum++;
     packetCount=packetCountEpoch=0;
-    //
-    // Fetch Access Token
-    //
 #ifdef DEBUG_PRINT_MAIN
     if(logfile) { 
       time_t clock;
       time(&clock);
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
-      fprintf(logfile, "Retrieving Curb Access Token\n"); 
    }
 #endif
     //
@@ -113,7 +160,6 @@ int main(int argc, char *argv[]) {
     // mark to MQTT server that we are offline and mark locally that device states are unknown to resend when we come back
     //
     myPaho->markAvailable(false);
-    //myStateMan->unkState();
 
     // If we had an expected exit note it and restart after a bit.
     if(status==1000) { 

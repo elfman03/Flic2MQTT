@@ -17,7 +17,7 @@ Config.obj: Config.cpp Config.h global.h
 	cl $(OPTS) /c Config.cpp
 
 flicd_client.obj: flicd_client.cpp flicd_client_protocol_packets.h
-	cl $(OPTS) /c flicd_client.cpp
+	cl $(OPTS) /I $(PAHO_I) /c flicd_client.cpp
 
 PahoWrapper.obj: PahoWrapper.cpp PahoWrapper.h Config.h global.h
 	cl $(OPTS) /I $(PAHO_I) /c PahoWrapper.cpp

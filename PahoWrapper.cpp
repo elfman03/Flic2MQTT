@@ -49,7 +49,7 @@ PahoWrapper::PahoWrapper(Config *config) {
       sprintf(topicAvailability[i],"%s%s/availability",base,name);
 #ifdef DEBUG_PRINT_MQTT
       if(logfile) {
-        fprintf(logfile,"Circuit(%d): %s state=%s availability=%s\n",i,name,topicState[i],topicAvailability[i]);
+        fprintf(logfile,"Button(%d): %s state=%s availability=%s\n",i,name,topicState[i],topicAvailability[i]);
       }
 #endif
     } else {
@@ -59,8 +59,8 @@ PahoWrapper::PahoWrapper(Config *config) {
   }
 }
 
-void PahoWrapper::writeState(int circuit, const char *msg) {
-  send(topicState[circuit], msg);
+void PahoWrapper::writeState(int bno, const char *msg) {
+  send(topicState[bno], msg);
 }
 
 void PahoWrapper::markAvailable(bool avail) {

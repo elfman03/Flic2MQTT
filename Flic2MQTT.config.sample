@@ -8,17 +8,22 @@ LOGFILE=stdout
 MQTT_SERVER=192.168.100.250
 MQTT_TOPIC_BASE=/flic2mqtt/
 #
+# Where is my flicd server?
+#
+FLICD_SERVER=127.0.0.1
+#FLICD_PORT=5551
+#
 #
 # The button names I want to track and their flic identifiers (can have up to 8)
 #
-FLIC_NAME_0=butt0
-FLIC_ID_0=1
+FLIC_NAME_00=butt0
+FLIC_MAC_00=xx:xx:xx:xx:xx:xx
 #
-FLIC_NAME_1=butt1
-FLIC_ID_1=2
+FLIC_NAME_01=butt1
+FLIC_MAC_01=xx:xx:xx:xx:xx:xx
 #
-FLIC_NAME_2=butt2
-FLIC_ID_2=2
+FLIC_NAME_02=butt2
+FLIC_MAC_02=xx:xx:xx:xx:xx:xx
 #
-FLIC_NAME_3=butt3
-FLIC_ID_3=3
+FLIC_NAME_03=butt3
+FLIC_MAC_03=xx:xx:xx:xx:xx:xx

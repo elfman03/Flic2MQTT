@@ -22,6 +22,15 @@ Config *myConfig=new Config();
 PahoWrapper *myPaho=0;
 int thePipeR=0,thePipeW=0;
 
+#define FLIC_INFO_GENERAL 0
+#define FLIC_INFO_BUTTON  1
+#define FLIC_CONNECT      2
+#define FLIC_UPDOWN       3
+#define FLIC_STATUS_OK    0
+#define FLIC_STATUS_FATAL 255
+#define FLIC_BUTTON_ALL   255
+#define FLIC_BUFSIZE      32
+
 DWORD firstTick;
 DWORD continueTick;
 DWORD availabilityTick;
@@ -127,15 +136,6 @@ int main(int argc, char *argv[]) {
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
-    //
-    // Create flicd connection
-    //
-#ifdef DEBUG_PRINT_MAIN
-    if(logfile) { fprintf(logfile,"Creating flicd connection\n"); }
-#endif
-    //t.b.d.
-    if(logfile) { fflush(logfile); }
-    //status=myWS->looper(&handleUTF8);
     //
     // Why did looper end?
     //

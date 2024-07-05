@@ -10,23 +10,24 @@ ELIBS=ws2_32.lib mswsock.lib advapi32.lib
 PAHO_I=../paho.mqtt.c/src
 PAHO_L=../paho.mqtt.c/src/Release/paho-mqtt3a.lib
 
-Flic2MQTT.exe: Flic2MQTT.cpp $(OBJS)
+Flic2MQTT.exe: Flic2MQTT.cpp flicd_client.h Config.h PahoWrapper.h global.h $(OBJS)
 	cl $(OPTS) /I $(PAHO_I) Flic2MQTT.cpp /link /DEBUG $(OBJS) $(PAHO_L) $(ELIBS)
 
 Config.obj: Config.cpp Config.h global.h
 	cl $(OPTS) /c Config.cpp
 
-flicd_client.obj: flicd_client.cpp flicd_client_protocol_packets.h
-	cl $(OPTS) /I $(PAHO_I) /c flicd_client.cpp
-
 PahoWrapper.obj: PahoWrapper.cpp PahoWrapper.h Config.h global.h
 	cl $(OPTS) /I $(PAHO_I) /c PahoWrapper.cpp
+
+flicd_client.obj: flicd_client.cpp flicd_client.h flicd_client_protocol_packets.h
+	cl $(OPTS) /c flicd_client.cpp
 
 clean:
 	cmd /c del /q Config.obj
 	cmd /c del /q PahoWrapper.obj
 	cmd /c del /q flicd_client.obj
-	cmd /c del /q Flic2MQTT.obj Flic2MQTT.exe
+	cmd /c del /q Flic2MQTT.obj Flic2MQTT.exe Flic2MQTT.pdb
+	cmd /c del /q vc140.pdb
 
 test:
 	.\Flic2MQTT.exe

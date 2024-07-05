@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <string>
 #include <sys/types.h>
+#include "flicd_client.h"
 
 #ifdef __GNUC__
 linux #include <unistd.h>

@@ -3,6 +3,8 @@ Listens to Flic buttons (via a flicd) and posts to MQTT.  It uses a modified fli
 
 it also provides a command line mode to run in 'simpleclient' mode to enable assorted maintenance tasks like scanning/registering new buttons, getting their MAC addresses, deleting buttons, and performing general maintenance.
 
+My Flic buttons are all Flic-1 (actually "powered by Flic" FCCID: 2ACR9-FLIC)
+
 |Command Line                    |Function                                            |
 |--------------------------------|----------------------------------------------------|
 |flic2MQTT                       |this message                                        |

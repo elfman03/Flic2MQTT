@@ -8,7 +8,7 @@ INSTALL:
 * pull/build - PAHO C Library - https://github.com/eclipse/paho.mqtt.c.git
 * Modify Makefile to indicate where your built PAHO library is
 * Get a Visual Studio Development prompt (I use 2022 community edition)
-** C:\Windows\System32\cmd.exe /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+ * e.j.: C:\Windows\System32\cmd.exe /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
 * make
 * Copy paho-mqtt3a.dll to current directory
 * run flic2mqtt
@@ -16,7 +16,7 @@ INSTALL:
 
 MQTT topics created/updated:
 |Topic                             | Value          | Description                |
-|---------------------------------:|----------------|----------------------------|
+|----------------------------------|----------------|----------------------------|
 |/flic2mqtt/LWT                    | Online/Offline | is flic2mqtt running?      |
 |/flic2mqtt/button_name/state      | On/Off         | On while actively pressed  |
 |/flic2mqtt/button_name/click      | timestamp      | triggers on click event    |

@@ -15,16 +15,17 @@ INSTALL:
 
 
 MQTT topics created/updated:
+|Topic                             | Value          | Description                |
+|---------------------------------:|----------------|----------------------------|
+|/flic2mqtt/LWT                    | Online/Offline | is flic2mqtt running?      |
+|/flic2mqtt/button_name/state      | On/Off         | On while actively pressed  |
+|/flic2mqtt/button_name/click      | timestamp      | triggers on click event    |
+|/flic2mqtt/button_name/hold       | timestamp      | triggers on hold event     |
+|/flic2mqtt/button_name/clickclick | timestamp      | triggers on double click   |
+|/flic2mqtt/button_name/clickhold  | timestamp      | triggers on click then hold|
 
-/flic2mqtt/LWT                    # Online/Offline - is flic2mqtt running?
-/flic2mqtt/button_name/state      # On/Off         - On while actively pressed
-/flic2mqtt/button_name/click      # timestamp      - triggers on click event
-/flic2mqtt/button_name/hold       # timestamp      - triggers on hold event
-/flic2mqtt/button_name/clickclick # timestamp      - triggers on double click
-/flic2mqtt/button_name/clickhold  # timestamp      - triggers on click then hold
-
-Configure Flic2MQTT.config
-
+Configure Flic2MQTT.config:
+```
 #
 # where should logs go?
 #
@@ -54,3 +55,4 @@ FLIC_MAC_02=xx:xx:xx:xx:xx:xx
 #
 FLIC_NAME_03=butt3
 FLIC_MAC_03=xx:xx:xx:xx:xx:xx
+```

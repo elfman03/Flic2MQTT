@@ -78,13 +78,14 @@ int looper() {
     if(flicOp==FLIC_PING) {
     } else if(flicOp==FLIC_INFO_GENERAL) {
     } else if(flicOp==FLIC_CONNECT) {
+      myPaho->markAvailable(true);
     } else if(flicOp==FLIC_STATUS) {
     } else if(flicOp==FLIC_UPDOWN) {
       if(flicStat==FLIC_STATUS_DOWN) { 
-        myPaho->writeState(flicButt,"On"); 
+        myPaho->writeState(flicButt, false, "On"); 
       }
       if(flicStat==FLIC_STATUS_UP)   { 
-        myPaho->writeState(flicButt,"Off"); 
+        myPaho->writeState(flicButt, false, "Off"); 
       }
       if(flicStat==FLIC_STATUS_HOLD) { 
         fprintf(stderr," TODO... handle hold actions\n"); 

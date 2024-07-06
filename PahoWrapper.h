@@ -17,20 +17,21 @@ private:
   FILE *logfile;
   MQTTAsync pahoClient;
   const char *mqttServer;
+  char *topicLWT;
   char *topicState[8];
-  char *topicAvailability[8];
+  char *topicStateHold[8];
   LONG volatile pahoOutstanding;
   bool volatile pahoUp;
   
   //
-  void send(const char *topic, const char *msg);
+  void send(const char *topic, int retain, const char *msg);
 
 public:
   PahoWrapper(Config *config);
   LONG getOutstanding();
   bool isUp();
   void markAvailable(bool avail);
-  void writeState(int circuit, const char *msg);
+  void writeState(int butt, bool hold, const char *msg);
   void reconnect();
 
   void pahoOnConnLost(char *cause);

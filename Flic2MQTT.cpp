@@ -18,6 +18,7 @@
 #include "Config.h"
 #include "PahoWrapper.h"
 #include "flicd_client.h"
+#include <assert.h>
 
 Config *myConfig=new Config();
 PahoWrapper *myPaho=0;
@@ -54,6 +55,44 @@ static int winsock_init() {
 
 static void winsock_cleanup() {
   WSACleanup();
+}
+
+int looper() {
+  char piper[32];
+  int ret;
+  int flicOp;
+  int flicStat;
+  int flicButt;
+  const char *flicMsg=&piper[3];
+
+  for(;;) {
+    ret=_read(thePipeR,piper,32);
+    assert(ret==32);
+
+    flicOp=piper[0];
+    flicStat=piper[1];
+    flicButt=piper[2];
+
+
+    fprintf(stderr,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+    if(flicOp==FLIC_PING) {
+    } else if(flicOp==FLIC_INFO_GENERAL) {
+    } else if(flicOp==FLIC_CONNECT) {
+    } else if(flicOp==FLIC_STATUS) {
+    } else if(flicOp==FLIC_UPDOWN) {
+      if(flicStat==FLIC_STATUS_DOWN) { 
+        myPaho->writeState(flicButt,"On"); 
+      }
+      if(flicStat==FLIC_STATUS_UP)   { 
+        myPaho->writeState(flicButt,"Off"); 
+      }
+      if(flicStat==FLIC_STATUS_HOLD) { 
+        fprintf(stderr," TODO... handle hold actions\n"); 
+      }
+    } else {
+      fprintf(stderr,"piper got UNKNOWN %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -132,15 +171,7 @@ int main(int argc, char *argv[]) {
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
-    while(1){
-    char piper[32];
-    _read(thePipeR,piper,32);
-    int flicOp=piper[0];
-    int flicStat=piper[1];
-    int flicButt=piper[2];
-    const char *flicMsg=&piper[3];
-    fprintf(stderr,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
-    }
+    looper();
     //
     // Why did looper end?
     //

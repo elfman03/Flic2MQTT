@@ -277,11 +277,37 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
   assert(readbuf);
 
   while(1) {
-    int nbytes = recv(sockfd, readbuf, 2, 0);
-    if (nbytes < 0) {
-      perror("read sockfd header");
-      return 1;
+    int nbytes;
+
+    int err=WSAETIMEDOUT;
+    for(;err==WSAETIMEDOUT;) {
+      err=0;
+      nbytes = recv(sockfd, readbuf, 2, 0);
+      if (nbytes < 0) {
+        err=WSAGetLastError();
+        if(err==WSAETIMEDOUT) {
+          if(thePipeW) {
+            pipe_send(FLIC_PING, FLIC_STATUS_OK, FLIC_BUTTON_ALL, "NO_UPDATE");
+          } else {
+            //fprintf(stderr,"Expected timeout receiving header from flicd!\n");
+          }
+        } else {
+          if(thePipeW) {
+            pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "BAD_HEADER");
+          }
+          perror("FATAL: read sockfd header");
+          return 1;
+        }
+      }
+      if (nbytes == 1) {
+          if(thePipeW) {
+            pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "SHORT_HEADER");
+          }
+          fprintf(stderr,"FATAL: just one byte came");
+          return 1;
+      }
     }
+
     int packet_len = readbuf[0] | (readbuf[1] << 8);
     int read_pos = 0;
     int bytes_left = packet_len;
@@ -290,6 +316,9 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
     while (bytes_left > 0) {
       nbytes = recv(sockfd, readbuf + read_pos, bytes_left, 0);
       if (nbytes < 0) {
+        if(thePipeW) {
+          pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "BAD_PAYLOAD");
+        }
         perror("read sockfd data");
         return 1;
       }
@@ -348,10 +377,10 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
         EvtButtonEvent* evt = (EvtButtonEvent*)pkt;
         if(thePipeW) {
           if (readbuf[0]==EVT_BUTTON_UP_OR_DOWN_OPCODE) {
-            pipe_send(FLIC_UPDOWN, FLIC_STATUS_OK, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+            pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
           }
           if (readbuf[0]==EVT_BUTTON_CLICK_OR_HOLD_OPCODE && evt->click_type==ButtonHold) {
-            pipe_send(FLIC_UPDOWN, FLIC_STATUS_OK, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+            pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
           }
         } else {
           static const char* types[] = {"Button up/down", "Button click/hold", "Button single/double click", "Button single/double click/hold"};
@@ -644,6 +673,17 @@ int flicd_client_init(const char *host, int port) {
   if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
     fprintf(stderr, "ERROR: failure connecting socket\n");
     perror("connect");
+    close(sockfd);
+    return -1;
+  }
+
+  //
+  // Set up one minute timeout on flicd socket
+  //
+  DWORD to=60000;
+  if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&to, sizeof(to))<0) {
+    fprintf(stderr, "ERROR: setting recieve timeout on socket\n");
+    perror("setsockopt");
     close(sockfd);
     return -1;
   }

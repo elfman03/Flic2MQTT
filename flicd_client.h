@@ -37,6 +37,9 @@ static const char *FLIC_OPS[]={"FLIC_PING",
 // Status
 //
 #define FLIC_STATUS_OK    0
+#define FLIC_STATUS_DOWN  0
+#define FLIC_STATUS_UP    1
+#define FLIC_STATUS_HOLD  5
 #define FLIC_STATUS_FATAL 255
 
 //

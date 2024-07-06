@@ -1,15 +1,22 @@
 # Flic2MQTT
 Listens to Flic buttons (via a flicd) and posts to MQTT
 
+|Command Line                    |Function                                            |
+|--------------------------------|----------------------------------------------------|
+|flic2MQTT                       |this message                                        |
+|flic2MQTT -interact host [port] |run a flic 'simpleclient' to host[port]             |
+|flic2MQTT -mqtt                 |run in mqtt mode with settings from Flic2MQTT.config|
+
 NOTE:  Currently only windows builds supported
 
 INSTALL: 
 * pull this git repo 
 * pull/build - PAHO C Library - https://github.com/eclipse/paho.mqtt.c.git
 * Modify Makefile to indicate where your built PAHO library is
-* Get a Visual Studio Development prompt (I use 2022 community edition)
- * e.j.: C:\Windows\System32\cmd.exe /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
-* make
+* Get a Visual Studio Development prompt 
+  *(I use 2022 community edition)
+  * e.j.: C:\Windows\System32\cmd.exe /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+* > make
 * Copy paho-mqtt3a.dll to current directory
 * run flic2mqtt
 

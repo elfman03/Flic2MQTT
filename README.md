@@ -44,7 +44,7 @@ Configure Flic2MQTT.config:
 #
 LOGFILE=stdout
 #
-# Where is my mqtt server and what should the topic pattern be (will augment circuit name)
+# Where is my mqtt server and what should the topic pattern be (will augment button name)
 #
 MQTT_SERVER=192.168.100.250
 MQTT_TOPIC_BASE=/flic2mqtt

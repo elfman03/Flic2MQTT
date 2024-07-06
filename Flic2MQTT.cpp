@@ -57,6 +57,13 @@ static void winsock_cleanup() {
   WSACleanup();
 }
 
+void timeFill(char *buf) {
+  time_t clock;
+  time(&clock);
+  sprintf(buf,"%s", asctime(localtime(&clock)));
+  buf[24]=0;
+}
+
 int looper(DWORD gotill) {
   char piper[32];
   int ret;
@@ -64,6 +71,7 @@ int looper(DWORD gotill) {
   int flicStat;
   int flicButt;
   const char *flicMsg=&piper[3];
+  char timeStr[64];
   int butt_held[8];
   for(int i=0;i<8;i++) { butt_held[i]=0; }
 
@@ -89,18 +97,42 @@ int looper(DWORD gotill) {
     } else if(flicOp==FLIC_STATUS) {
     } else if(flicOp==FLIC_UPDOWN) {
       if(flicStat==FLIC_STATUS_DOWN) { 
+        //
+        // We started pressing down
+        //
         myPaho->writeState(flicButt, BUTT_STATE, "On"); 
         butt_held[flicButt]=0;  // if we are just starting to press, we were not held down
       } else if(flicStat==FLIC_STATUS_UP) {
+        //
+        // We stopped pressing down
+        //
         myPaho->writeState(flicButt, BUTT_STATE, "Off"); 
-        // keep held state for the following click event
       } else if(flicStat==FLIC_STATUS_HOLD) {
-fprintf(stderr,"hold\n");
+        //
+        // We are holding it down
+        //
+        timeFill(timeStr);
         butt_held[flicButt]=1;
       } else if(flicStat==FLIC_STATUS_SINGLECLICK) {
-fprintf(stderr,"single\n");
+        //
+        // Flic detected a single click completion.  Send a click or hold event
+        //
+        timeFill(timeStr);
+        if(butt_held[flicButt]) {
+          myPaho->writeState(flicButt, BUTT_HOLD, timeStr); 
+        } else {
+          myPaho->writeState(flicButt, BUTT_CLICK, timeStr); 
+        }
       } else if(flicStat==FLIC_STATUS_DOUBLECLICK) {
-fprintf(stderr,"double\n");
+        //
+        // Flic detected a double click completion.  Send a clickclick or clickhold event
+        //
+        timeFill(timeStr);
+        if(butt_held[flicButt]) {
+          myPaho->writeState(flicButt, BUTT_CLICKHOLD, timeStr); 
+        } else {
+          myPaho->writeState(flicButt, BUTT_CLICKCLICK, timeStr); 
+        }
       }
     } else {
       fprintf(stderr,"piper got UNKNOWN %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
@@ -203,8 +235,7 @@ int main(int argc, char *argv[]) {
    }
 #endif
     epochTick=GetTickCount();
-    availabilityTick=epochTick+1000*60*5;   // 5 minutes
-    //availabilityTick=epochTick+1000*60*60;   // one hour
+    availabilityTick=epochTick+1000*60*60;   // one hour
     if(!firstTick) { firstTick=epochTick; }
 
     status=looper(availabilityTick);
@@ -232,8 +263,8 @@ int main(int argc, char *argv[]) {
     // Expected availiability deadline timeout (1000)
     //
     char msg[1024];
-    if(status=1000) { 
-      status=flicd_client_handle_line(sockfd, "getInfo");
+    if(status==1000) {
+      flicd_client_handle_line(sockfd, "getInfo");
       sprintf(msg,"EPOCH %d - LOOPER END - 1000 - NORMAL LOOPER TIMEOUT TO REFRESH AVAILABILITY.",epochNum);
     } else {
       sprintf(msg,"EPOCH %d - LOOPER END - %d - UNEXPECTED RETURN.  DIE!!!!",epochNum,status);

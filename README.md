@@ -1,5 +1,7 @@
 # Flic2MQTT
-Listens to Flic buttons (via a flicd) and posts to MQTT
+Listens to Flic buttons (via a flicd) and posts to MQTT.  It uses a modified flic sdk 'simpleclient' to create a socket connection to a flid daemon, registers for events from selected buttons.  As button events are received from flicd, it converts these events into MQTT topic posts.  My primary intended use is to run this on the same server running flicd (connecting to flicd via 127.0.0.1) then send the resulting MQTT messages to a separate server on my IOT network running openhab. In this way I can avoid using the FlicButton binding in OpenHAB and re-enable the firewall that prevents my IOT network from initiating connections to my regular network.  
+
+it also provides a command line mode to run in 'simpleclient' mode to enable assorted maintenance tasks like scanning/registering new buttons, getting their MAC addresses, deleting buttons, and performing general maintenance.
 
 |Command Line                    |Function                                            |
 |--------------------------------|----------------------------------------------------|
@@ -7,7 +9,11 @@ Listens to Flic buttons (via a flicd) and posts to MQTT
 |flic2MQTT -interact host [port] |run a flic 'simpleclient' to host[port]             |
 |flic2MQTT -mqtt                 |run in mqtt mode with settings from Flic2MQTT.config|
 
-NOTE:  Currently only windows builds supported
+NOTES:
+* Requires a working flicd daemon
+* Currently only windows builds supported
+* 'simpleclient' is ported from https://github.com/50ButtonsEach/fliclib-linux-hci/tree/master/simpleclient
+* Depends on Apache PAHO MQTT client library
 
 INSTALL: 
 * pull this git repo 
@@ -16,7 +22,7 @@ INSTALL:
 * Get a Visual Studio Development prompt 
   *(I use 2022 community edition)
   * e.j.: C:\Windows\System32\cmd.exe /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
-* > make
+* make
 * Copy paho-mqtt3a.dll to current directory
 * run flic2mqtt
 

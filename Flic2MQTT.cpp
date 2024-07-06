@@ -203,7 +203,8 @@ int main(int argc, char *argv[]) {
    }
 #endif
     epochTick=GetTickCount();
-    availabilityTick=epochTick+1000*60*60;   // one hour
+    availabilityTick=epochTick+1000*60*5;   // 5 minutes
+    //availabilityTick=epochTick+1000*60*60;   // one hour
     if(!firstTick) { firstTick=epochTick; }
 
     status=looper(availabilityTick);
@@ -232,7 +233,7 @@ int main(int argc, char *argv[]) {
     //
     char msg[1024];
     if(status=1000) { 
-      myPaho->markAvailable(true);   
+      status=flicd_client_handle_line(sockfd, "getInfo");
       sprintf(msg,"EPOCH %d - LOOPER END - 1000 - NORMAL LOOPER TIMEOUT TO REFRESH AVAILABILITY.",epochNum);
     } else {
       sprintf(msg,"EPOCH %d - LOOPER END - %d - UNEXPECTED RETURN.  DIE!!!!",epochNum,status);

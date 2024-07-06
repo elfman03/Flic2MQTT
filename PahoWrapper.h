@@ -9,6 +9,12 @@
 #define _PAHOWRAPPER
 #include <MQTTAsync.h>
 
+#define BUTT_STATE        0
+#define BUTT_CLICK        1
+#define BUTT_HOLD         2
+#define BUTT_CLICKCLICK   3
+#define BUTT_CLICKHOLD    4
+
 class Config;
 
 class PahoWrapper {
@@ -19,7 +25,10 @@ private:
   const char *mqttServer;
   char *topicLWT;
   char *topicState[8];
+  char *topicStateClick[8];
   char *topicStateHold[8];
+  char *topicStateClickClick[8];
+  char *topicStateClickHold[8];
   LONG volatile pahoOutstanding;
   bool volatile pahoUp;
   
@@ -31,7 +40,7 @@ public:
   LONG getOutstanding();
   bool isUp();
   void markAvailable(bool avail);
-  void writeState(int butt, bool hold, const char *msg);
+  void writeState(int butt, int mode, const char *msg);
   void reconnect();
 
   void pahoOnConnLost(char *cause);

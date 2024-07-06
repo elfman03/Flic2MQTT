@@ -57,27 +57,42 @@ PahoWrapper::PahoWrapper(Config *config) {
     //
     if(name) {
       topicState[i]=(char*)malloc(strlen(base)+strlen(name)+20);
+      topicStateClick[i]=(char*)malloc(strlen(base)+strlen(name)+24);
       topicStateHold[i]=(char*)malloc(strlen(base)+strlen(name)+24);
+      topicStateClickClick[i]=(char*)malloc(strlen(base)+strlen(name)+24);
+      topicStateClickHold[i]=(char*)malloc(strlen(base)+strlen(name)+24);
       sprintf(topicState[i],"%s/%s/state",base,name);
-      sprintf(topicStateHold[i],"%s/%s/statehold",base,name);
+      sprintf(topicStateClick[i],"%s/%s/click",base,name);
+      sprintf(topicStateHold[i],"%s/%s/hold",base,name);
+      sprintf(topicStateClickClick[i],"%s/%s/clickclick",base,name);
+      sprintf(topicStateClickHold[i],"%s/%s/clickhold",base,name);
       //
 #ifdef DEBUG_PRINT_MQTT
       if(logfile) {
-        fprintf(logfile,"Button(%d): %s state=%s stateHold=%s\n",i,name,topicState[i],topicStateHold[i]);
+        fprintf(logfile,"Button(%d): %s state=%s click=%s hold=%s clickclick=%s clickhold=%s\n",i,name,topicState[i],topicStateClick[i],topicStateHold[i],topicStateClickClick[i],topicStateClickHold[i]);
       }
 #endif
     } else {
       topicState[i]=0;
+      topicStateClick[i]=0;
       topicStateHold[i]=0;
+      topicStateClickClick[i]=0;
+      topicStateClickHold[i]=0;
     }
   }
 }
 
-void PahoWrapper::writeState(int bno, bool hold, const char *msg) {
-  if(hold) {
+void PahoWrapper::writeState(int bno, int mode, const char *msg) {
+  if(mode==BUTT_STATE) {
     send(topicState[bno], 0, msg);
-  } else {
+  } else if(mode==BUTT_CLICK) {
+    send(topicStateClick[bno], 0, msg);
+  } else if(mode==BUTT_HOLD) {
     send(topicStateHold[bno], 0, msg);
+  } else if(mode==BUTT_CLICKCLICK) {
+    send(topicStateClickClick[bno], 0, msg);
+  } else {
+    send(topicStateClickHold[bno], 0, msg);
   }
 }
 

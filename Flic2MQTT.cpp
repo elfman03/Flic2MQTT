@@ -24,9 +24,9 @@ Config *myConfig=new Config();
 PahoWrapper *myPaho=0;
 int thePipeR=0,thePipeW=0;
 
-DWORD firstTick;
-DWORD continueTick;
-DWORD availabilityTick;
+DWORD firstTick;         //  When did we start?
+DWORD epochTick;         //  When did this epoch start?
+DWORD availabilityTick;  //  When should we refresh availablity on MQTT server?
 FILE *logfile;
 int epochNum=0;
 int packetCount;
@@ -57,15 +57,23 @@ static void winsock_cleanup() {
   WSACleanup();
 }
 
-int looper() {
+int looper(DWORD gotill) {
   char piper[32];
   int ret;
   int flicOp;
   int flicStat;
   int flicButt;
   const char *flicMsg=&piper[3];
+  int butt_held[8];
+  for(int i=0;i<8;i++) { butt_held[i]=0; }
 
   for(;;) {
+    //
+    // Check for exit loop condition
+    //
+    DWORD tick=GetTickCount();
+    if(tick>gotill) { return 1000; }
+
     ret=_read(thePipeR,piper,32);
     assert(ret==32);
 
@@ -73,26 +81,31 @@ int looper() {
     flicStat=piper[1];
     flicButt=piper[2];
 
-
     fprintf(stderr,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
     if(flicOp==FLIC_PING) {
     } else if(flicOp==FLIC_INFO_GENERAL) {
-    } else if(flicOp==FLIC_CONNECT) {
       myPaho->markAvailable(true);
+    } else if(flicOp==FLIC_CONNECT) {
     } else if(flicOp==FLIC_STATUS) {
     } else if(flicOp==FLIC_UPDOWN) {
       if(flicStat==FLIC_STATUS_DOWN) { 
-        myPaho->writeState(flicButt, false, "On"); 
-      }
-      if(flicStat==FLIC_STATUS_UP)   { 
-        myPaho->writeState(flicButt, false, "Off"); 
-      }
-      if(flicStat==FLIC_STATUS_HOLD) { 
-        fprintf(stderr," TODO... handle hold actions\n"); 
+        myPaho->writeState(flicButt, BUTT_STATE, "On"); 
+        butt_held[flicButt]=0;  // if we are just starting to press, we were not held down
+      } else if(flicStat==FLIC_STATUS_UP) {
+        myPaho->writeState(flicButt, BUTT_STATE, "Off"); 
+        // keep held state for the following click event
+      } else if(flicStat==FLIC_STATUS_HOLD) {
+fprintf(stderr,"hold\n");
+        butt_held[flicButt]=1;
+      } else if(flicStat==FLIC_STATUS_SINGLECLICK) {
+fprintf(stderr,"single\n");
+      } else if(flicStat==FLIC_STATUS_DOUBLECLICK) {
+fprintf(stderr,"double\n");
       }
     } else {
       fprintf(stderr,"piper got UNKNOWN %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
     }
+    packetCountEpoch++;
   }
 }
 
@@ -147,12 +160,30 @@ int main(int argc, char *argv[]) {
   pt->markAvailable(false);
   myPaho=pt;
 
-  //status=flicd_client_handle_line(sockfd, "getInfo");
-  char cmd[32];
-  sprintf(cmd,"connect %s %d",myConfig->getFlicMac(0),0);
-  fprintf(stderr,"cmd=%s\n",cmd);
-  status=flicd_client_handle_line(sockfd, cmd);
-  fprintf(stderr,"handle_line status=%d\n",status);
+  // 
+  // Kick off with info request and register for desired buttons
+  //
+  status=flicd_client_handle_line(sockfd, "getInfo");
+#ifdef DEBUG_PRINT_MAIN
+  fprintf(logfile,"main->flicd: getInfo : status=%d\n",status);
+#endif
+
+  for(int i=0;i<8;i++) {
+    const char *mac=myConfig->getFlicMac(i);
+    if(mac) {
+      char cmd[32];
+      sprintf(cmd,"connect %s %d",mac,i);
+      status=flicd_client_handle_line(sockfd, cmd);
+#ifdef DEBUG_PRINT_MAIN
+      fprintf(logfile,"main->flicd: %s : status=%d\n",cmd,status);
+#endif
+    }
+  }
+
+  firstTick=epochTick=availabilityTick=0;
+  packetCount=packetCountEpoch=0;
+  epochNum=0;
+
   //
   // Loop as long as the flicd returns a normal condition.
   //
@@ -162,9 +193,8 @@ int main(int argc, char *argv[]) {
     //
     if(!myPaho->isUp()) { myPaho->reconnect(); }
 
-    firstTick=continueTick=availabilityTick=0;
     epochNum++;
-    packetCount=packetCountEpoch=0;
+    packetCountEpoch=0;
 #ifdef DEBUG_PRINT_MAIN
     if(logfile) { 
       time_t clock;
@@ -172,57 +202,44 @@ int main(int argc, char *argv[]) {
       fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
-    looper();
-    //
-    // Why did looper end?
-    //
+    epochTick=GetTickCount();
+    availabilityTick=epochTick+1000*60*60;   // one hour
+    if(!firstTick) { firstTick=epochTick; }
+
+    status=looper(availabilityTick);
+
     DWORD tick=GetTickCount();
-    if(!firstTick) { firstTick=tick; }
+
 #ifdef DEBUG_PRINT_MAIN
     if(logfile) { 
       int h, m, s, frac;
-      frac=(tick-firstTick);
+      frac=(tick-epochTick);
       h=frac/(1000*60*60); frac=frac%(1000*60*60);
       m=frac/(1000*60);    frac=frac%(1000*60);
       s=frac/(1000);       frac=frac%(1000);
       frac=frac/100;
       fprintf(logfile, "Looper ended with status %d (normal=1000) Epoch %d after epochTime=%d:%02d:%02d.%01d packets=%d\n",status,epochNum,h,m,s,frac,packetCountEpoch);
-      fprintf(logfile, "tick=%ul firstTick=%ul\n",tick,firstTick);
+      fprintf(logfile, "firstTick=%ul epochTick=%ul tick=%ul\n",firstTick,epochTick,tick);
       fflush(logfile); 
     }
 #endif
-    char *msg=0;
-    int wait=0;
-    //
-    // mark to MQTT server that we are offline and mark locally that device states are unknown to resend when we come back
-    //
-    myPaho->markAvailable(false);
 
-    // If we had an expected exit note it and restart after a bit.
-    if(status==1000) { 
-      wait=3; 
-      msg="NORMAL_CLOSURE.  Start over in 3 minutes"; 
-    } else if(status==12002) { 
-      wait=5; 
-      msg="ERROR_WINHTTP_TIMEOUT.  Try again in 5 mins";
-      status=1000;
-    } else if(status==12007) { 
-      wait=5; 
-      msg="ERROR_WINHTTP_NAME_NOT_RESOLVED.  Try again in 5 mins";
-      status=1000;
-    } else if(status==12030) { 
-      wait=5; 
-      msg="ERROR_WINHTTP_CONNECTION_ERROR.  Try again in 5 mins";
-      status=1000;
-    } else if(status==711711) {
-      wait=1; 
-      msg="ERROR_PAHO_DOWN.  Try again in 1 min";
-      status=1000;
+    //
+    // Why did looper end?
+    //
+    //
+    // Expected availiability deadline timeout (1000)
+    //
+    char msg[1024];
+    if(status=1000) { 
+      myPaho->markAvailable(true);   
+      sprintf(msg,"EPOCH %d - LOOPER END - 1000 - NORMAL LOOPER TIMEOUT TO REFRESH AVAILABILITY.",epochNum);
+    } else {
+      sprintf(msg,"EPOCH %d - LOOPER END - %d - UNEXPECTED RETURN.  DIE!!!!",epochNum,status);
     }
 #ifdef DEBUG_PRINT_MAIN
     if(logfile && msg) { fprintf(logfile, "%s\n",msg); }
 #endif
-    Sleep(wait*60*1000); 
   }
   if(logfile) { fflush(logfile); } // should be in Config.cpp destructor?
 }

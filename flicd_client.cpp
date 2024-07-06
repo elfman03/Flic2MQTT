@@ -378,8 +378,11 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
         if(thePipeW) {
           if (readbuf[0]==EVT_BUTTON_UP_OR_DOWN_OPCODE) {
             pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
-          }
-          if (readbuf[0]==EVT_BUTTON_CLICK_OR_HOLD_OPCODE && evt->click_type==ButtonHold) {
+          } else if (readbuf[0]==EVT_BUTTON_CLICK_OR_HOLD_OPCODE && evt->click_type==ButtonHold) {
+            pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+          } else if (readbuf[0]==EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE && evt->click_type==ButtonSingleClick) {
+            pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
+          } else if (readbuf[0]==EVT_BUTTON_SINGLE_OR_DOUBLE_CLICK_OPCODE && evt->click_type==ButtonDoubleClick) {
             pipe_send(FLIC_UPDOWN, evt->click_type, evt->base.conn_id, ClickTypeStrings[evt->click_type]);
           }
         } else {

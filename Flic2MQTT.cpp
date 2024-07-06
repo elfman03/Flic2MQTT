@@ -60,8 +60,7 @@ static void winsock_cleanup() {
 void timeFill(char *buf) {
   time_t clock;
   time(&clock);
-  sprintf(buf,"%s", asctime(localtime(&clock)));
-  buf[24]=0;
+  sprintf(buf,"%.24s", asctime(localtime(&clock)));
 }
 
 int looper(DWORD gotill) {
@@ -235,7 +234,7 @@ int main(int argc, char *argv[]) {
     if(logfile) { 
       time_t clock;
       time(&clock);
-      fprintf(logfile,"Epoch %d begins: %s\n", epochNum, asctime(localtime(&clock)));
+      fprintf(logfile,"Epoch %d begins: %.24s\n", epochNum, asctime(localtime(&clock)));
    }
 #endif
     epochTick=GetTickCount();

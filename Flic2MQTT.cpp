@@ -89,7 +89,9 @@ int looper(DWORD gotill) {
     flicStat=piper[1];
     flicButt=piper[2];
 
-    fprintf(stderr,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+#ifdef DEBUG_PRINT_MAIN
+    fprintf(logfile,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+#endif
     if(flicOp==FLIC_PING) {
     } else if(flicOp==FLIC_INFO_GENERAL) {
       myPaho->markAvailable(true);
@@ -135,7 +137,9 @@ int looper(DWORD gotill) {
         }
       }
     } else {
-      fprintf(stderr,"piper got UNKNOWN %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+#ifdef DEBUG_PRINT_MAIN
+      fprintf(logfile,"piper got UNKNOWN %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+#endif
     }
     packetCountEpoch++;
   }

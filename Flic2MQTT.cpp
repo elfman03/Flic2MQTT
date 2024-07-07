@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
       s=frac/(1000);       frac=frac%(1000);
       frac=frac/100;
       fprintf(logfile, "Looper ended with status %d (normal=1000) Epoch %d after epochTime=%d:%02d:%02d.%01d packets=%d\n",status,epochNum,h,m,s,frac,packetCountEpoch);
-      fprintf(logfile, "firstTick=%ul epochTick=%ul tick=%ul\n",firstTick,epochTick,tick);
+      fprintf(logfile, "firstTick=%u epochTick=%u tick=%u\n",firstTick,epochTick,tick);
       fflush(logfile); 
     }
 #endif

@@ -30,14 +30,14 @@ INSTALL:
 
 
 MQTT topics created/updated:
-|Topic                             | Value          | Description                |
-|----------------------------------|----------------|----------------------------|
-|/flic2mqtt/LWT                    | Online/Offline | is flic2mqtt running?      |
-|/flic2mqtt/button_name/state      | On/Off         | On while actively pressed  |
-|/flic2mqtt/button_name/click      | timestamp      | triggers on click event    |
-|/flic2mqtt/button_name/hold       | timestamp      | triggers on hold event     |
-|/flic2mqtt/button_name/clickclick | timestamp      | triggers on double click   |
-|/flic2mqtt/button_name/clickhold  | timestamp      | triggers on click then hold|
+|Topic                             | Value          | Description                            |
+|----------------------------------|----------------|----------------------------------------|
+|/flic2mqtt/LWT                    | Online/Offline | is flic2mqtt running?                  |
+|/flic2mqtt/button_name/state      | On/Off         | On while actively pressed              |
+|/flic2mqtt/button_name/click      | timestamp      | triggers after click event             |
+|/flic2mqtt/button_name/hold       | timestamp      | triggers after hold releases           |
+|/flic2mqtt/button_name/clickclick | timestamp      | triggers after double click            |
+|/flic2mqtt/button_name/clickhold  | timestamp      | triggers after click then hold releases|
 
 Configure Flic2MQTT.config:
 ```

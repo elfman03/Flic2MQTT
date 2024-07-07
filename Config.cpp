@@ -64,6 +64,7 @@ void Config::readConfig(const char *fname) {
         buf[i]=(char)ch;
      }
   }
+  fclose(f);
   if(ch!=EOF) {
     fprintf(stderr,"Excessively long Flic2MQTT.config\n");
     exit(1);

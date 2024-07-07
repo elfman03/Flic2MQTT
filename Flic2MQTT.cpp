@@ -147,6 +147,9 @@ int looper(DWORD gotill) {
 #endif
     }
     packetCountEpoch++;
+#ifdef DEBUG_PRINT_MAIN
+    fflush(logfile);
+#endif
   }
 }
 

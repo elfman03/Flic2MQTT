@@ -64,22 +64,23 @@ void timeFill(char *buf) {
 }
 
 int looper(DWORD gotill) {
-  char piper[32];
+  char piper[32];                      // the 32 byte payload for the pipe to the main thread
   int ret;
   int flicOp;
   int flicStat;
   int flicButt;
   const char *flicMsg=&piper[3];
   char timeStr[64];
+  int holdCt=0;                        // how many buttons are being actively held down at this time?
   int butt_held[8];
   for(int i=0;i<8;i++) { butt_held[i]=0; }
 
   for(;;) {
     //
-    // Check for exit loop condition
+    // Check for exit loop condition.  the time is after the limit and we do not have any active button holds
     //
     DWORD tick=GetTickCount();
-    if(tick>gotill) { return 1000; }
+    if(tick>gotill && !holdCt) { return 1000; }
 
     ret=_read(thePipeR,piper,32);
     assert(ret==32);
@@ -102,7 +103,7 @@ int looper(DWORD gotill) {
         // We started pressing down
         //
         myPaho->writeState(flicButt, BUTT_STATE, "On"); 
-        butt_held[flicButt]=0;  // if we are just starting to press, we were not held down
+        assert(!butt_held[flicButt]);
       } else if(flicStat==FLIC_STATUS_UP) {
         //
         // We stopped pressing down
@@ -114,6 +115,7 @@ int looper(DWORD gotill) {
         //
         timeFill(timeStr);
         butt_held[flicButt]=1;
+        holdCt++; 
       } else if(flicStat==FLIC_STATUS_SINGLECLICK) {
         //
         // Flic detected a single click completion.  Send a click or hold event
@@ -121,6 +123,8 @@ int looper(DWORD gotill) {
         timeFill(timeStr);
         if(butt_held[flicButt]) {
           myPaho->writeState(flicButt, BUTT_HOLD, timeStr); 
+          butt_held[flicButt]=0;   // clear the hold status
+          holdCt--;
         } else {
           myPaho->writeState(flicButt, BUTT_CLICK, timeStr); 
         }
@@ -131,6 +135,8 @@ int looper(DWORD gotill) {
         timeFill(timeStr);
         if(butt_held[flicButt]) {
           myPaho->writeState(flicButt, BUTT_CLICKHOLD, timeStr); 
+          butt_held[flicButt]=0;   // clear the hold status
+          holdCt--;
         } else {
           myPaho->writeState(flicButt, BUTT_CLICKCLICK, timeStr); 
         }

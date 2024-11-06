@@ -70,6 +70,17 @@ void Config::readConfig(const char *fname) {
     exit(1);
   }
 
+  // hash out all line contents after a hashmark
+  for(i=0;buf[i];i++) {
+    if(buf[i]=='#') {
+      int j;
+      for(j=i+1;buf[j] && (buf[j]!='\r') && (buf[j]!='\n');j++) {
+        buf[j]='#';
+      }
+      i=j-1;
+    }
+  }
+
   p=strstr(buf,"LOGFILE=");
   if(p) {
     for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter

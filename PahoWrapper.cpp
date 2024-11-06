@@ -108,6 +108,7 @@ void PahoWrapper::send(const char *topic, int retain, const char *msg) {
 #ifdef DEBUG_PRINT_MQTT
   if(logfile) { 
     fprintf(logfile,"PAHO - Writing retain=%d message '%s' to topic '%s'\n", retain, msg, topic); 
+    fflush(logfile);
   }
 #endif
   //

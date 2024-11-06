@@ -61,11 +61,11 @@ PahoWrapper::PahoWrapper(Config *config) {
       topicStateHold[i]=(char*)malloc(strlen(base)+strlen(name)+24);
       topicStateClickClick[i]=(char*)malloc(strlen(base)+strlen(name)+24);
       topicStateClickHold[i]=(char*)malloc(strlen(base)+strlen(name)+24);
-      sprintf(topicState[i],"%s/%s/state",base,name);
-      sprintf(topicStateClick[i],"%s/%s/click",base,name);
-      sprintf(topicStateHold[i],"%s/%s/hold",base,name);
-      sprintf(topicStateClickClick[i],"%s/%s/clickclick",base,name);
-      sprintf(topicStateClickHold[i],"%s/%s/clickhold",base,name);
+      sprintf(topicState[i],"%s/%s/STATE",base,name);
+      sprintf(topicStateClick[i],"%s/%s/CLICK",base,name);
+      sprintf(topicStateHold[i],"%s/%s/HOLD",base,name);
+      sprintf(topicStateClickClick[i],"%s/%s/CLICKCLICK",base,name);
+      sprintf(topicStateClickHold[i],"%s/%s/CLICKHOLD",base,name);
       //
 #ifdef DEBUG_PRINT_MQTT
       if(logfile) {

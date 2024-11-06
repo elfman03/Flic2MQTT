@@ -107,7 +107,7 @@ void PahoWrapper::markAvailable(bool avail) {
 void PahoWrapper::send(const char *topic, int retain, const char *msg) {
 #ifdef DEBUG_PRINT_MQTT
   if(logfile) { 
-    fprintf(logfile,"PAHO - Writing message '%s' to topic '%s'\n",msg, topic); 
+    fprintf(logfile,"PAHO - Writing retain=%d message '%s' to topic '%s'\n", retain, msg, topic); 
   }
 #endif
   //
@@ -147,7 +147,7 @@ void PahoWrapper::reconnect() {
     pahoClient=0; 
     Sleep(1000); 
   }
-  MQTTAsync_create(&pahoClient, mqttServer, "Curb2MQTT/1.0", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  MQTTAsync_create(&pahoClient, mqttServer, "Flic2MQTT/1.0", MQTTCLIENT_PERSISTENCE_NONE, NULL);
   MQTTAsync_setCallbacks(pahoClient, NULL, _pahoOnConnLost, NULL, NULL);
   conn_opts.keepAliveInterval = 20;
   conn_opts.cleansession = 1;

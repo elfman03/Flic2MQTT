@@ -10,7 +10,7 @@
 #include <cstring>
 #include <unistd.h>
 #define LONG long
-#define Sleep(xxx) usleep(xxx)
+#define Sleep(xxx) usleep(xxx*1000)
 #else
 #include <windows.h>
 #include <winhttp.h>

@@ -137,11 +137,13 @@ void Config::readConfig(const char *fname) {
   *q=cc;
 
   p=strstr(buf,"FLICD_PORT=");
-  for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
-  cc=*q;
-  *q=0;
-  flicdPort=atoi(&p[11]);
-  *q=cc;
+  if(p) {
+    for(q=p;(*q) && (*q!='\r') && (*q!='\n');) { q=q+1; }  // find end of config parameter
+    cc=*q;
+    *q=0;
+    flicdPort=atoi(&p[11]);
+    *q=cc;
+  }
 
   char chartmp[24];
   for(i=0;i<8;i++) {

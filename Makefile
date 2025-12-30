@@ -9,10 +9,10 @@ ifeq ($(shell uname), Linux)
 # Linux
 #
 
-CC=g++ -D__LINUX__
+CC=g++ -D__LINUX__ 
 OPTS=-g
 OBJS=Config.o PahoWrapper.o flicd_client.o
-ELIBS=-lpthread -lpaho-mqtt3a
+ELIBS=-lc -lpthread -lpaho-mqtt3a
 
 Flic2MQTT: Flic2MQTT.cpp flicd_client.h Config.h PahoWrapper.h global.h $(OBJS)
 	$(CC) $(OPTS) -o Flic2MQTT Flic2MQTT.cpp $(OBJS) $(ELIBS)

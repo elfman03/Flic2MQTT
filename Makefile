@@ -4,6 +4,43 @@
 ## SPDX-License-Identifier: MIT
 ##
 
+ifeq ($(shell uname), Linux)
+#
+# Linux
+#
+
+CC=g++ -D__LINUX__
+OPTS=-g
+OBJS=Config.o PahoWrapper.o flicd_client.o
+ELIBS=-lpthread -lpaho-mqtt3a
+
+Flic2MQTT: Flic2MQTT.cpp flicd_client.h Config.h PahoWrapper.h global.h $(OBJS)
+	$(CC) $(OPTS) -o Flic2MQTT Flic2MQTT.cpp $(OBJS) $(ELIBS)
+
+Config.o: Config.cpp Config.h global.h
+	$(CC) $(OPTS) -c Config.cpp
+
+PahoWrapper.o: PahoWrapper.cpp PahoWrapper.h Config.h global.h
+	$(CC) $(OPTS) -c PahoWrapper.cpp
+
+flicd_client.o: flicd_client.cpp flicd_client.h flicd_client_protocol_packets.h
+	$(CC) $(OPTS) -c flicd_client.cpp
+
+clean:
+	rm -f Config.o
+	rm -f PahoWrapper.o
+	rm -f flicd_client.o
+	rm -f Flic2MQTT.o 
+	rm -f Flic2MQTT
+
+test:
+	./Flic2MQTT
+
+else
+#
+# Windows
+#
+
 OPTS=/MD /EHsc /Zi
 OBJS=Config.obj PahoWrapper.obj flicd_client.obj
 ELIBS=ws2_32.lib mswsock.lib advapi32.lib
@@ -31,3 +68,5 @@ clean:
 
 test:
 	.\Flic2MQTT.exe
+
+endif

@@ -24,14 +24,14 @@
 #include "flicd_client.h"
 
 #ifdef __GNUC__
-linux #include <unistd.h>
-linux #include <poll.h>
-linux #include <sys/param.h>
-linux #include <sys/uio.h>
-linux #include <sys/ioctl.h>
-linux #include <sys/socket.h>
-linux #include <arpa/inet.h>
-linux #include <netdb.h>
+#include <unistd.h>
+#include <poll.h>
+#include <sys/param.h>
+#include <sys/uio.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #endif
 
 #ifdef _MSC_VER
@@ -51,8 +51,17 @@ extern int thePipeW;     // the pipe to use to send flic info to the main thread
 using namespace std;
 using namespace FlicClientProtocol;
 
+#ifdef __LINUX__
+#include <pthread.h>
+#define __LOOPWHILE EAGAIN
+static pthread_t theFlicdReaderHandle;    // Handle of Flicd reader
+#define _write write
+#define DWORD unsigned long
+#else
+#define __LOOPWHILE WSAETIMEDOUT
 static DWORD theFlicdReaderTid;             // Thread identifier of Flicd reader
 static HANDLE theFlicdReaderHandle;         // Handle of Flicd reader
+#endif
 
 static const char* CreateConnectionChannelErrorStrings[] = {
   "NoError",
@@ -270,7 +279,14 @@ static void pipe_send(char operation, char status, char button, const char *str)
   _write(thePipeW,piper,32);
 }
 
-static DWORD WINAPI flicd_client_reader(LPVOID param) {
+#ifdef __LINUX__
+#define __BADRET (void*)1
+static void *flicd_client_reader(void *param) 
+#else
+#define __BADRET 1
+static DWORD WINAPI flicd_client_reader(LPVOID param) 
+#endif
+{
   int sockfd=*((int*)param);
   free(param);
   char *readbuf=(char *)malloc(65536+4);
@@ -279,13 +295,18 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
   while(1) {
     int nbytes;
 
-    int err=WSAETIMEDOUT;
-    for(;err==WSAETIMEDOUT;) {
+    int err=__LOOPWHILE;
+    for(;err==__LOOPWHILE;) {
       err=0;
       nbytes = recv(sockfd, readbuf, 2, 0);
       if (nbytes < 0) {
+#ifdef __LINUX__
+        err=errno;
+	if(err==EWOULDBLOCK) { err=__LOOPWHILE; }  // EAGAIN and EWOULDBLOCK both acceptable
+#else
         err=WSAGetLastError();
-        if(err==WSAETIMEDOUT) {
+#endif
+        if(err==__LOOPWHILE) {
           if(thePipeW) {
             pipe_send(FLIC_PING, FLIC_STATUS_OK, FLIC_BUTTON_ALL, "NO_UPDATE");
           } else {
@@ -296,7 +317,7 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
             pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "BAD_HEADER");
           }
           perror("FATAL: read sockfd header");
-          return 1;
+          return __BADRET;
         }
       }
       if (nbytes == 1) {
@@ -304,7 +325,7 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
             pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "SHORT_HEADER");
           }
           fprintf(stderr,"FATAL: just one byte came");
-          return 1;
+          return __BADRET;
       }
     }
 
@@ -320,7 +341,7 @@ static DWORD WINAPI flicd_client_reader(LPVOID param) {
           pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "BAD_PAYLOAD");
         }
         perror("read sockfd data");
-        return 1;
+        return __BADRET;
       }
       read_pos += nbytes;
       bytes_left -= nbytes;
@@ -683,8 +704,16 @@ int flicd_client_init(const char *host, int port) {
   //
   // Set up one minute timeout on flicd socket
   //
+#ifdef __LINUX__
+  struct timeval tv;
+  tv.tv_sec=60;
+  tv.tv_usec=0;
+  if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))<0) 
+#else
   DWORD to=60000;
-  if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&to, sizeof(to))<0) {
+  if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&to, sizeof(to))<0) 
+#endif
+  {
     fprintf(stderr, "ERROR: setting recieve timeout on socket\n");
     perror("setsockopt");
     close(sockfd);
@@ -695,12 +724,21 @@ int flicd_client_init(const char *host, int port) {
   //
   int *tmp=(int*)malloc(sizeof(int));
   *tmp=sockfd;
+#ifdef __LINUX__
+  int ret=pthread_create(&theFlicdReaderHandle,0,flicd_client_reader,tmp);
+  if(ret) {
+    fprintf(stderr, "ERROR: fail creating flicd client reader thread\n");
+    close(sockfd);
+    return -1;
+  }
+#else
   theFlicdReaderHandle=CreateThread(NULL,0,flicd_client_reader,tmp,0,&theFlicdReaderTid);
   if(!theFlicdReaderHandle) {
     fprintf(stderr, "ERROR: fail creating flicd client reader thread\n");
     close(sockfd);
     return -1;
   }
+#endif
 
   return sockfd;
 }

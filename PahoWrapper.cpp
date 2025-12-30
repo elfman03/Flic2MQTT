@@ -5,8 +5,16 @@
  *
  */
 
+#ifdef __LINUX__
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+#define LONG long
+#define Sleep(xxx) usleep(xxx)
+#else
 #include <windows.h>
 #include <winhttp.h>
+#endif
 #include <stdio.h>
 #include <MQTTAsync.h>
 #include "global.h"
@@ -124,7 +132,11 @@ void PahoWrapper::send(const char *topic, int retain, const char *msg) {
   pubmsg.payloadlen = strlen(msg);
   pubmsg.qos = 1;
   pubmsg.retained = retain;
+#ifdef __LINUX__
+  __sync_fetch_and_add(&pahoOutstanding,1);
+#else
   InterlockedIncrement(&pahoOutstanding);
+#endif
   if ((rc = MQTTAsync_sendMessage(pahoClient, topic, &pubmsg, &opts)) != MQTTASYNC_SUCCESS) {
     pahoUp=false;
     fprintf(stderr,"PAHO_ERROR - Failed to start sendMessage, return code %d (%s : %s)\n", rc,topic,msg);
@@ -230,7 +242,11 @@ void PahoWrapper::pahoOnConnect(MQTTAsync_successData* response) {
 
 void PahoWrapper::pahoOnSend(MQTTAsync_successData* response)
 {
+#ifdef __LINUX__
+  __sync_fetch_and_sub(&pahoOutstanding,1);
+#else
   InterlockedDecrement(&pahoOutstanding);
+#endif
   if(pahoOutstanding>16) {
     pahoUp=false;
     fprintf(stderr,"PAHO_ERROR - Outstanding Paho MQTT messages is high: %d\n", pahoOutstanding);

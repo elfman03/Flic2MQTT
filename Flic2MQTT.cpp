@@ -7,11 +7,28 @@
 
 #define WIN32_LEAN_AND_MEAN
 
+#ifdef __LINUX__
+#include <unistd.h>
+#include <cstdlib>
+#include <cstring>
+#include <time.h>
+#define LONG long
+#define DWORD unsigned long
+#define _read read
+
+static unsigned long GetTickCount() {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC,&ts);
+  return ts.tv_sec+(ts.tv_nsec/1000);
+}
+
+#else
 #include <windows.h>
 #include <io.h>
-#include <fcntl.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#endif
+#include <fcntl.h>
 #include <time.h>
 #include <stdio.h>
 #include "global.h"
@@ -42,6 +59,7 @@ void Usage() {
   fprintf(stderr,"flic2MQTT -mqtt                         # run in mqtt mode with settings from Flic2MQTT.config\n");
 }
 
+#ifndef __LINUX__
 static int winsock_init() {
   int ret;
   WSADATA wsaData;
@@ -56,6 +74,7 @@ static int winsock_init() {
 static void winsock_cleanup() {
   WSACleanup();
 }
+#endif
 
 void timeFill(char *buf) {
   time_t clock;
@@ -157,7 +176,9 @@ int main(int argc, char *argv[]) {
   int status;
   int pipes[2];
 
+#ifndef __LINUX__
   winsock_init();
+#endif
 
   if(argc>1 && !strcmp(argv[1],"-interact")) {
     //
@@ -173,7 +194,11 @@ int main(int argc, char *argv[]) {
     return(0);
   }
 
+#ifdef __LINUX__
+  status=pipe(pipes);
+#else
   status=_pipe(pipes,1024,O_BINARY);
+#endif
   if(status==-1) {
     fprintf(stderr, "Error creating pipes\n");
     return -1;

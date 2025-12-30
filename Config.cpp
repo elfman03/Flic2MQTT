@@ -5,7 +5,12 @@
  *
  */
 
+#ifdef __LINUX__
+#include <cstdlib>
+#include <cstring>
+#else
 #include <windows.h>
+#endif
 #include <stdio.h>
 #include "global.h"
 #include "Config.h"

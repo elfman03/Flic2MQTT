@@ -12,8 +12,10 @@
 #define BUTT_STATE        0
 #define BUTT_CLICK        1
 #define BUTT_HOLD         2
-#define BUTT_CLICKCLICK   3
-#define BUTT_CLICKHOLD    4
+#define BUTT_HOLD_UP      3
+#define BUTT_CLICKCLICK   4
+#define BUTT_CLICKHOLD    5
+#define BUTT_CLICKHOLD_UP 6
 
 class Config;
 
@@ -27,8 +29,10 @@ private:
   char *topicState[8];
   char *topicStateClick[8];
   char *topicStateHold[8];
+  char *topicStateHoldUp[8];
   char *topicStateClickClick[8];
   char *topicStateClickHold[8];
+  char *topicStateClickHoldUp[8];
   LONG volatile pahoOutstanding;
   bool volatile pahoUp;
   

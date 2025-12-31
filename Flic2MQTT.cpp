@@ -91,8 +91,9 @@ int looper(DWORD gotill) {
   const char *flicMsg=&piper[3];
   char timeStr[64];
   int holdCt=0;                        // how many buttons are being actively held down at this time?
-  int butt_held[8];
-  for(int i=0;i<8;i++) { butt_held[i]=0; }
+  int butt_held[8];                    // is button being held down
+  int butt_downct[8];                  // how many down events since an event finalization happened (in a clickclick situation)
+  for(int i=0;i<8;i++) { butt_held[i]=butt_downct[i]=0; }
 
   for(;;) {
     //
@@ -122,6 +123,7 @@ int looper(DWORD gotill) {
         // We started pressing down
         //
         myPaho->writeState(flicButt, BUTT_STATE, "On"); 
+	butt_downct[flicButt]++;
         assert(!butt_held[flicButt]);
       } else if(flicStat==FLIC_STATUS_UP) {
         //
@@ -130,35 +132,44 @@ int looper(DWORD gotill) {
         myPaho->writeState(flicButt, BUTT_STATE, "Off"); 
       } else if(flicStat==FLIC_STATUS_HOLD) {
         //
-        // We are holding it down
+        // We are holding it down.  based on value of butt_downct, its either a simple hold or a click then hold.
+	// We send an event in this case in case user wants to trigger off of when the hold begins instead of
+	// when the hold ends.
         //
         timeFill(timeStr);
+	if(butt_downct[flicButt]>1) {
+          myPaho->writeState(flicButt, BUTT_CLICKHOLD, timeStr); 
+	} else {
+          myPaho->writeState(flicButt, BUTT_HOLD, timeStr); 
+	}
         butt_held[flicButt]=1;
         holdCt++; 
       } else if(flicStat==FLIC_STATUS_SINGLECLICK) {
         //
-        // Flic detected a single click completion.  Send a click or hold event
+        // Flic detected a single click completion.  Send a click or hold_up event
         //
         timeFill(timeStr);
         if(butt_held[flicButt]) {
-          myPaho->writeState(flicButt, BUTT_HOLD, timeStr); 
+          myPaho->writeState(flicButt, BUTT_HOLD_UP, timeStr); 
           butt_held[flicButt]=0;   // clear the hold status
           holdCt--;
         } else {
           myPaho->writeState(flicButt, BUTT_CLICK, timeStr); 
         }
+	butt_downct[flicButt]=0;  // finalize.  reset downct
       } else if(flicStat==FLIC_STATUS_DOUBLECLICK) {
         //
-        // Flic detected a double click completion.  Send a clickclick or clickhold event
+        // Flic detected a double click completion.  Send a clickclick or clickhold_up event
         //
         timeFill(timeStr);
         if(butt_held[flicButt]) {
-          myPaho->writeState(flicButt, BUTT_CLICKHOLD, timeStr); 
+          myPaho->writeState(flicButt, BUTT_CLICKHOLD_UP, timeStr); 
           butt_held[flicButt]=0;   // clear the hold status
           holdCt--;
         } else {
           myPaho->writeState(flicButt, BUTT_CLICKCLICK, timeStr); 
         }
+	butt_downct[flicButt]=0;  // finalize.  reset downct
       }
     } else {
 #ifdef DEBUG_PRINT_MAIN

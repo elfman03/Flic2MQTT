@@ -266,7 +266,7 @@ static void print_help() {
 
 static void pipe_send(char operation, char status, char button, const char *str) {
   int i;
-  char piper[32];
+  unsigned char piper[32];
   //
   // assemble a packet and write it to the main thread pipe
   //
@@ -299,6 +299,7 @@ static DWORD WINAPI flicd_client_reader(LPVOID param)
     for(;err==__LOOPWHILE;) {
       err=0;
       nbytes = recv(sockfd, readbuf, 2, 0);
+      //fprintf(stderr,"ct=%d\n",nbytes);
       if (nbytes < 0) {
 #ifdef __LINUX__
         err=errno;
@@ -319,6 +320,13 @@ static DWORD WINAPI flicd_client_reader(LPVOID param)
           perror("FATAL: read sockfd header");
           return __BADRET;
         }
+      }
+      if (nbytes == 0) {
+          if(thePipeW) {
+            pipe_send(FLIC_PING, FLIC_STATUS_FATAL, FLIC_BUTTON_ALL, "FLICD_GONE");
+          }
+          perror("FATAL: peer flicd disappeared");
+          return __BADRET;
       }
       if (nbytes == 1) {
           if(thePipeW) {

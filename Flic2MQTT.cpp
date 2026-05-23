@@ -83,12 +83,12 @@ void timeFill(char *buf) {
 }
 
 int looper(DWORD gotill) {
-  char piper[32];                      // the 32 byte payload for the pipe to the main thread
+  unsigned char piper[32];                      // the 32 byte payload for the pipe to the main thread
   int ret;
   int flicOp;
   int flicStat;
   int flicButt;
-  const char *flicMsg=&piper[3];
+  const unsigned char *flicMsg=&piper[3];
   char timeStr[64];
   int holdCt=0;                        // how many buttons are being actively held down at this time?
   int butt_held[8];                    // is button being held down
@@ -115,6 +115,10 @@ int looper(DWORD gotill) {
     }
 #endif
     if(flicOp==FLIC_PING) {
+      if(flicStat==FLIC_STATUS_FATAL) {
+        fprintf(logfile,"piper fatality: %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+	return 999;
+      }
     } else if(flicOp==FLIC_INFO_GENERAL) {
       myPaho->markAvailable(true);
     } else if(flicOp==FLIC_CONNECT) {

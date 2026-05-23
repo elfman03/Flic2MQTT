@@ -110,7 +110,9 @@ int looper(DWORD gotill) {
     flicButt=piper[2];
 
 #ifdef DEBUG_PRINT_MAIN
-    fprintf(logfile,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+    if(flicOp!=FLIC_PING) {  // ping every 60 seconds not worth printing.  print everything real.
+      fprintf(logfile,"piper got %s %d %d %s\n",FLIC_OPS[flicOp],flicStat,flicButt,flicMsg);
+    }
 #endif
     if(flicOp==FLIC_PING) {
     } else if(flicOp==FLIC_INFO_GENERAL) {
